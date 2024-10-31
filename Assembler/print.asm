@@ -1,0 +1,2 @@
+SECTION main [@0]
+  PRNT #8257
