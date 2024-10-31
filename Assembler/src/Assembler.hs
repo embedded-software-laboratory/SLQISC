@@ -3,9 +3,7 @@
 module Assembler (assemble, output, parseAssembly) where
 
 import Data.Char
-import Data.Char (isLower)
-import Data.Function (on)
-import Data.List
+import Data.List (elemIndex, findIndex, nub, sortOn)
 import Data.Maybe
 import Data.Void
 import System.IO
@@ -14,7 +12,7 @@ import Text.Megaparsec.Char
 import Text.Printf
 
 charArray :: String
-charArray = " ABCDEFGHIJKLMNOPQRSTUVWXYZ!abcdefghijklmnopqrstuvwxyz0123456789"
+charArray = " ABCDEFGHIJKLMNOPQRSTUVWXYZ!0123456789abcdefghijklmnopqrstuvwxyz"
 
 charValue :: Char -> Int
 charValue c = fromJust $ elemIndex c charArray
@@ -23,30 +21,118 @@ data Macro
   = MMov Directive Directive
   | MAdd Directive Directive
   | MSub Directive Directive
+  | MMul Directive Directive
+  | MDiv Directive Directive
+  | MMod Directive Directive
+  | MAnd Directive Directive
+  | MOr Directive Directive
+  | MNot Directive
   | MJmp Directive
   | MInc Directive
   | MDec Directive
   | MOut Directive
+  | MPrint Directive
+  | MDOut Directive
   | MString String
 
-implem :: Macro -> [Directive]
-implem (MMov a b) = nobranch a a ++ implem (MAdd a b)
-implem (MAdd a b) = nobranch b (DImm 0) ++ nobranch (DImm 0) a ++ nobranch (DImm 0) (DImm 0)
-implem (MSub a b) = nobranch b a
-implem (MJmp a) = [DImm 0, DImm 0, a]
-implem (MInc a) = implem (MSub a (DImm (-1)))
-implem (MDec a) = implem (MSub a (DImm 1))
-implem (MOut a) = implem (MSub DOut a)
-implem (MString s) = map DChar s
+implem :: Directive -> Macro -> [Directive]
+implem pc (MMov a b) = nobranch a a ++ implem (DSum pc (DNumber 3)) (MAdd a b)
+implem _ (MAdd a b) = nobranch b (DImm 0) ++ nobranch (DImm 0) a ++ nobranch (DImm 0) (DImm 0)
+implem _ (MSub a b) = nobranch b a
+implem _ (MMul a b) =
+  [DSum DCur (DNumber 7), DSum DCur (DNumber 6), DSum DCur (DNumber 1), DSum DCur (DNumber 3), DSum DCur (DNumber 2), DSum DCur (DNumber 3), DNumber 0, DNumber 0]
+    ++ nobranch b (DImm 0)
+    ++ [DImm 0, DDiff DCur (DNumber 6), DSum DCur (DNumber 16)]
+    ++ nobranch (DImm 0) (DImm 0)
+    ++ nobranch (DImm 1) (DDiff DCur (DNumber 12))
+    ++ nobranch a (DImm 0)
+    ++ nobranch (DImm 0) (DDiff DCur (DNumber 17))
+    ++ [DImm 0, DImm 0, DDiff DCur (DNumber 17)]
+    ++ nobranch a a
+    ++ nobranch (DDiff DCur (DNumber 25)) (DImm 0)
+    ++ nobranch (DImm 0) a
+    ++ nobranch (DImm 0) (DImm 0)
+implem _ (MDiv a b) =
+  [DSum DCur (DNumber 3), DSum DCur (DNumber 2), DSum DCur (DNumber 2), DNumber 0]
+    ++ nobranch (DImm (-1)) a
+    ++ nobranch (DImm (-1)) (DDiff DCur (DNumber 5))
+    ++ [b, a, DSum DCur (DNumber 4)]
+    ++ [DImm 0, DImm 0, DDiff DCur (DNumber 8)]
+    ++ nobranch a a
+    ++ nobranch (DDiff DCur (DNumber 16)) (DImm 0)
+    ++ nobranch (DImm 0) a
+    ++ nobranch (DImm 0) (DImm 0)
+    ++ nobranch (DImm 1) a
+implem pc (MMod a b) =
+  nobranch (DImm (-1)) a
+    ++ [b, a, DSum DCur (DNumber 4)]
+    ++ [DImm 0, DImm 0, DDiff DCur (DNumber 5)]
+    ++ implem (DSum pc (DNumber 9)) (MAdd a b)
+    ++ nobranch (DImm 1) a
+implem pc (MAnd a b) = implem pc (MMul a b)
+implem pc (MNot a) =
+  nobranch a (DImm 1)
+    ++ implem (DSum pc (DNumber 3)) (MMov a (DImm 1))
+    ++ nobranch (DImm 1) (DImm 1)
+    ++ nobranch (DImm (-1)) (DImm 1)
+implem pc (MOr a b) =
+  implem pc (MAdd a b)
+    ++ [DImm 1, a, DSum DCur (DNumber 4)]
+    ++ implem (DSum pc (DNumber 12)) (MMov a (DImm 1))
+implem _ (MJmp a) = [DImm 0, DImm 0, a]
+implem pc (MInc a) = implem pc (MSub a (DImm (-1)))
+implem pc (MDec a) = implem pc (MSub a (DImm 1))
+implem pc (MOut a) = implem pc (MSub DOut a)
+implem pc (MDOut a) =
+  let c = DImm (charValue '0')
+   in implem pc (MAdd c a)
+        ++ implem (DSum pc (DNumber 9)) (MOut c)
+        ++ nobranch c c
+        ++ nobranch (DImm (-charValue '0')) c
+implem pc (MPrint a) =
+  let x = DSum pc (DNumber 3)
+   in [DSum DCur (DNumber 3), DSum DCur (DNumber 2), DSum DCur (DNumber 2), DNumber 0]
+        ++ ( zip
+               (map (DSum pc . DNumber) [4, 7 ..])
+               [ MMov x a,
+                 MDiv x (DImm 10000),
+                 MDOut x,
+                 MMov x a,
+                 MDiv x (DImm 1000),
+                 MMod x (DImm 10),
+                 MDOut x,
+                 MMov x a,
+                 MDiv x (DImm 100),
+                 MMod x (DImm 10),
+                 MDOut x,
+                 MMov x a,
+                 MDiv x (DImm 10),
+                 MMod x (DImm 10),
+                 MDOut x,
+                 MMov x a,
+                 MMod x (DImm 10),
+                 MDOut x
+               ]
+               >>= uncurry implem
+           )
+implem _ (MString s) = map DChar s
 
 instance Show Macro where
   show (MMov a b) = "MOV " ++ show a ++ ", " ++ show b
   show (MAdd a b) = "ADD " ++ show a ++ ", " ++ show b
   show (MSub a b) = "SUB " ++ show a ++ ", " ++ show b
+  show (MMul a b) = "MUL " ++ show a ++ ", " ++ show b
+  show (MDiv a b) = "DIV " ++ show a ++ ", " ++ show b
+  show (MMod a b) = "MOD " ++ show a ++ ", " ++ show b
+  show (MAnd a b) = "AND " ++ show a ++ ", " ++ show b
+  show (MOr a b) = "OR " ++ show a ++ ", " ++ show b
+  show (MNot a) = "NOT " ++ show a
   show (MJmp a) = "JMP " ++ show a
   show (MInc a) = "INC " ++ show a
   show (MDec a) = "DEC " ++ show a
   show (MOut a) = "OUT " ++ show a
+  show (MDOut a) = "DOUT " ++ show a
+  show (MPrint a) = "PRNT " ++ show a
   show (MString a) = "STR " ++ show a
 
 nobranch :: Directive -> Directive -> [Directive]
@@ -211,16 +297,16 @@ toInt (DMacro _) = undefined
 toInts :: [Directive] -> [Int]
 toInts = map toInt
 
-resolveMacrosD' :: Directive -> [Directive]
-resolveMacrosD' (DMacro m) = implem m
-resolveMacrosD' d = [d]
+resolveMacrosD' :: Directive -> Directive -> [Directive]
+resolveMacrosD' pc (DMacro m) = implem pc m
+resolveMacrosD' _ d = [d]
 
-resolveMacrosD :: LDirective -> [LDirective]
-resolveMacrosD (LabelledDirective l d) = (\case (x : xs) -> LabelledDirective l x : map RawDirective xs; _ -> []) (resolveMacrosD' d)
-resolveMacrosD (RawDirective d) = map RawDirective (resolveMacrosD' d)
+resolveMacrosD :: String -> LDirective -> [LDirective]
+resolveMacrosD _ (LabelledDirective l d) = (\case (x : xs) -> LabelledDirective l x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel l) d)
+resolveMacrosD free (RawDirective d) = (\case (x : xs) -> LabelledDirective (show free) x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel (show free)) d)
 
 resolveMacros :: Assembly -> Assembly
-resolveMacros = map (\s -> s {directives = directives s >>= resolveMacrosD})
+resolveMacros = map (\s -> s {directives = zip [0 :: Int ..] (directives s) >>= (\(i, d) -> resolveMacrosD ("_" ++ name s ++ show i) d)})
 
 assemble :: Assembly -> [Int]
 assemble = toInts . resolveLabels . squash . placeSections . constSection . resolveMacros
@@ -229,20 +315,6 @@ output :: String -> [Int] -> IO ()
 output f dat = withFile f WriteMode $ \h -> do
   hPutStrLn h "v3.0 hex bytes plain big-endian"
   hPutStrLn h $ unwords $ map (printf "%04hx") dat
-
-testAssembly :: Assembly
-testAssembly =
-  [ Section "main" (Just 0) [RawDirective (DNumber (-2)), RawDirective (DNumber (-2)), RawDirective (DLabel "loop")],
-    Section "data" Nothing [LabelledDirective "data" $ DChar 'H', RawDirective $ DChar 'E', RawDirective $ DChar 'L', RawDirective $ DChar 'L', RawDirective $ DChar 'O', RawDirective $ DChar '!'],
-    Section "loop" Nothing [LabelledDirective "loop" $ DLabel "data", RawDirective DOut, RawDirective (DSum DCur (DNumber 1)), RawDirective $ DImm (-1), RawDirective $ DLabel "loop", RawDirective (DLabel "loop")]
-  ]
-
-macroAssembly :: Assembly
-macroAssembly =
-  [ Section "main" (Just 0) [RawDirective $ DMacro $ MJmp (DLabel "loop")],
-    Section "data" Nothing [LabelledDirective "data" $ DMacro (MString "HELLO!")],
-    Section "loop" Nothing [LabelledDirective "loop" $ DMacro (MOut (DLabel "data")), RawDirective $ DMacro (MSub (DLabel "loop") (DImm (-1))), RawDirective $ DMacro (MJmp (DLabel "loop"))]
-  ]
 
 parseCalcDirective :: Parsec Void String Directive
 parseCalcDirective = do
@@ -275,6 +347,35 @@ parseMacro = do
             MSub a <$> parseDirective
         )
     <|> ( do
+            _ <- string "MUL"
+            a <- parseDirective
+            MMul a <$> parseDirective
+        )
+    <|> ( do
+            _ <- string "DIV"
+            a <- parseDirective
+            MDiv a <$> parseDirective
+        )
+    <|> ( do
+            _ <- string "MOD"
+            a <- parseDirective
+            MMod a <$> parseDirective
+        )
+    <|> ( do
+            _ <- string "AND"
+            a <- parseDirective
+            MAnd a <$> parseDirective
+        )
+    <|> ( do
+            _ <- string "OR"
+            a <- parseDirective
+            MOr a <$> parseDirective
+        )
+    <|> ( do
+            _ <- string "NOT"
+            MNot <$> parseDirective
+        )
+    <|> ( do
             _ <- string "JMP"
             MJmp <$> parseDirective
         )
@@ -289,6 +390,14 @@ parseMacro = do
     <|> ( do
             _ <- string "OUT"
             MOut <$> parseDirective
+        )
+    <|> ( do
+            _ <- string "DOUT"
+            MDOut <$> parseDirective
+        )
+    <|> ( do
+            _ <- string "PRNT"
+            MPrint <$> parseDirective
         )
     <|> ( do
             _ <- string "STR"
@@ -311,7 +420,7 @@ parseDirective = do
     '>' -> return DOut
     '<' -> return DIn
     '(' -> parseCalcDirective <* char ')'
-    nn | isDigit nn || nn == '-' -> DNumber . read . (nn :) <$> many (noneOf " \n")
+    nn | isDigit nn || nn == '-' -> DNumber . read . (nn :) <$> many (noneOf ")( \n")
     nn | isLower nn -> DLabel . (nn :) <$> many (noneOf " \n")
     _ -> fail "no directive"
 
