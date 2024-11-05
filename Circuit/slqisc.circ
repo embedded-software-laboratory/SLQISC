@@ -39,6 +39,10 @@
       <a name="facing" val="west"/>
       <a name="labelloc" val="east"/>
     </tool>
+    <tool name="Constant">
+      <a name="value" val="0x12"/>
+      <a name="width" val="7"/>
+    </tool>
   </lib>
   <lib desc="#Gates" name="1">
     <tool name="AND Gate">
@@ -682,7 +686,9 @@
 1f2109f 7c00 70843f 1f21151 1f08421 1f4111f 1f4105f 1f8c63f
 1fa529c 1f8d67f 1fa52dd 1dad6b7 1087e10 1f0843f 1c1045c 1f1105f
 1151151 1c21c9c 119d731 7400 e8d62e 447c00 99d6a9 a8d6aa
-4653e4 1dad6b2 ead6a2 1085f10 aad6aa 8ad6ae
+4653e4 1dad6b2 ead6a2 1085f10 aad6aa 8ad6ae 2ad6ae 1f294a2
+e8c631 2294bf ead6ac fa5208 8ad6be 1f21083 5c00 208436
+7c45
 </a>
       <a name="dataWidth" val="25"/>
     </comp>
