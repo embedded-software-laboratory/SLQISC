@@ -19,6 +19,10 @@ charValue c = fromJust $ elemIndex c charArray
 
 data Macro
   = MMov Directive Directive
+  | MSTI Directive Directive
+  | MLDI Directive Directive
+  | MPush Directive
+  | MPop Directive
   | MAdd Directive Directive
   | MSub Directive Directive
   | MMul Directive Directive
@@ -37,6 +41,24 @@ data Macro
 
 implem :: Directive -> Macro -> [Directive]
 implem pc (MMov a b) = nobranch a a ++ implem (DSum pc (DNumber 3)) (MAdd a b)
+implem _ (MSTI a b) =
+  nobranch a (DImm 0)
+    ++ nobranch (DImm 0) (DSum DCur (DNumber 9))
+    ++ nobranch (DImm 0) (DImm 0)
+    ++ nobranch b (DImm 0)
+    ++ nobranch (DImm 0) (DNumber 0)
+    ++ nobranch (DImm 0) (DImm 0)
+    ++ nobranch (DDiff DCur (DNumber 5)) (DDiff DCur (DNumber 6))
+implem _ (MLDI a b) =
+  nobranch b (DImm 0)
+    ++ nobranch (DImm 0) (DSum DCur (DNumber 5))
+    ++ nobranch (DImm 0) (DImm 0)
+    ++ nobranch (DNumber 0) (DImm 0)
+    ++ nobranch (DImm 0) a
+    ++ nobranch (DImm 0) (DImm 0)
+    ++ nobranch (DDiff DCur (DNumber 9)) (DDiff DCur (DNumber 10))
+implem pc (MPush a) = implem pc (MSTI (DReg RSP) a) ++ implem (DSum pc (DNumber 21)) (MDec (DReg RSP))
+implem pc (MPop a) = implem pc (MInc (DReg RSP)) ++ implem (DSum pc (DNumber 3)) (MLDI (DReg RSP) a)
 implem _ (MAdd a b) = nobranch b (DImm 0) ++ nobranch (DImm 0) a ++ nobranch (DImm 0) (DImm 0)
 implem _ (MSub a b) = nobranch b a
 implem _ (MMul a b) =
@@ -82,7 +104,7 @@ implem pc (MOr a b) =
 implem _ (MJmp a) = [DImm 0, DImm 0, a]
 implem pc (MInc a) = implem pc (MSub a (DImm (-1)))
 implem pc (MDec a) = implem pc (MSub a (DImm 1))
-implem pc (MOut a) = implem pc (MSub DOut a)
+implem pc (MOut a) = implem pc (MSub (DReg ROut) a)
 implem pc (MDOut a) =
   let c = DImm (charValue '0')
    in implem pc (MAdd c a)
@@ -119,6 +141,10 @@ implem _ (MString s) = map DChar s
 
 instance Show Macro where
   show (MMov a b) = "MOV " ++ show a ++ ", " ++ show b
+  show (MSTI a b) = "STI " ++ show a ++ ", " ++ show b
+  show (MLDI a b) = "LDI " ++ show a ++ ", " ++ show b
+  show (MPush a) = "PUSH " ++ show a
+  show (MPop a) = "POP " ++ show a
   show (MAdd a b) = "ADD " ++ show a ++ ", " ++ show b
   show (MSub a b) = "SUB " ++ show a ++ ", " ++ show b
   show (MMul a b) = "MUL " ++ show a ++ ", " ++ show b
@@ -138,6 +164,14 @@ instance Show Macro where
 nobranch :: Directive -> Directive -> [Directive]
 nobranch a b = [a, b, DSum DCur (DNumber 1)]
 
+data Reg = ROut | RIn | RSP | RGPR Int
+
+instance Show Reg where
+  show ROut = "O"
+  show RIn = "I"
+  show RSP = "SP"
+  show (RGPR i) = show i
+
 data Directive
   = DNumber Int
   | DImm Int
@@ -145,12 +179,11 @@ data Directive
   | DImmChar Char
   | DLabel String
   | DCur
-  | DOut
-  | DIn
   | DSum Directive Directive
   | DDiff Directive Directive
   | DMul Directive Directive
   | DMacro Macro
+  | DReg Reg
 
 instance Show Directive where
   show (DNumber i) = show i
@@ -159,12 +192,11 @@ instance Show Directive where
   show (DImmChar c) = "@" ++ show c
   show (DLabel l) = l
   show DCur = "?"
-  show DOut = ">"
-  show DIn = "<"
   show (DSum a b) = "(" ++ show a ++ " + " ++ show b ++ ")"
   show (DDiff a b) = "(" ++ show a ++ " - " ++ show b ++ ")"
   show (DMul a b) = "(" ++ show a ++ " * " ++ show b ++ ")"
   show (DMacro m) = show m
+  show (DReg m) = "$" ++ show m
 
 data LDirective = LabelledDirective String Directive | RawDirective Directive
 
@@ -280,6 +312,12 @@ resolveLabels ds =
       )
       ds
 
+regToInt :: Reg -> Int
+regToInt ROut = -1
+regToInt RIn = -2
+regToInt RSP = -3
+regToInt (RGPR i) = -(i + 16)
+
 toInt :: Directive -> Int
 toInt (DNumber i) = i
 toInt (DImm _) = undefined
@@ -287,12 +325,11 @@ toInt (DChar c) = charValue c
 toInt (DImmChar _) = undefined
 toInt (DLabel _) = undefined
 toInt DCur = undefined
-toInt DOut = -1
-toInt DIn = -2
 toInt (DSum a b) = toInt a + toInt b
 toInt (DDiff a b) = toInt a - toInt b
 toInt (DMul a b) = toInt a * toInt b
 toInt (DMacro _) = undefined
+toInt (DReg r) = regToInt r
 
 toInts :: [Directive] -> [Int]
 toInts = map toInt
@@ -330,12 +367,30 @@ parseCalcDirective = do
     _ -> undefined
 
 parseMacro :: Parsec Void String Macro
-parseMacro = do
+parseMacro =
   ( do
       _ <- string "MOV"
       a <- parseDirective
       MMov a <$> parseDirective
-    )
+  )
+    <|> ( do
+            _ <- string "STI"
+            a <- parseDirective
+            MSTI a <$> parseDirective
+        )
+    <|> ( do
+            _ <- string "LDI"
+            a <- parseDirective
+            MLDI a <$> parseDirective
+        )
+    <|> ( do
+            _ <- string "PUSH"
+            MPush <$> parseDirective
+        )
+    <|> ( do
+            _ <- string "POP"
+            MPop <$> parseDirective
+        )
     <|> ( do
             _ <- string "ADD"
             a <- parseDirective
@@ -408,6 +463,13 @@ parseMacro = do
             return r
         )
 
+register :: Parsec Void String Reg
+register = do
+  (string "O" >> return ROut)
+    <|> (string "I" >> return RIn)
+    <|> (string "SP" >> return RSP)
+    <|> (RGPR . read <$> some digitChar)
+
 parseDirective :: Parsec Void String Directive
 parseDirective = do
   _ <- many (oneOf " \n")
@@ -417,8 +479,7 @@ parseDirective = do
     '!' -> DChar <$> anySingle
     '@' -> DImmChar <$> anySingle
     '?' -> return DCur
-    '>' -> return DOut
-    '<' -> return DIn
+    '$' -> DReg <$> register
     '(' -> parseCalcDirective <* char ')'
     nn | isDigit nn || nn == '-' -> DNumber . read . (nn :) <$> many (noneOf ")( \n")
     nn | isLower nn -> DLabel . (nn :) <$> many (noneOf " \n")
