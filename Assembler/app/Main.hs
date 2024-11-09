@@ -1,10 +1,10 @@
 module Main (main) where
 
-import Lib
 import Assembler
 
 import Text.Megaparsec
 import System.Environment
+import Data.Char
 
 main :: IO ()
 main = do
@@ -17,4 +17,5 @@ main = do
     Right asm -> do
       let cmp = assemble asm
       print cmp
-      output "out.hex" cmp
+      let name = reverse $ takeWhile isAlphaNum $ reverse $ takeWhile (/= '.') filename
+      output (name ++ ".hex") cmp

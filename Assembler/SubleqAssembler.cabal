@@ -26,7 +26,7 @@ source-repository head
 library
   exposed-modules:
       Assembler
-      Lib
+      Assembly
   other-modules:
       Paths_SubleqAssembler
   autogen-modules:
