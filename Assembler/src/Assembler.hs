@@ -38,31 +38,33 @@ data Macro
   | MPrint Directive
   | MDOut Directive
   | MString String
+  | MCall Directive
+  | MRet
 
 implem :: Directive -> Macro -> [Directive]
-implem pc (MMov a b) = nobranch a a ++ implem (DSum pc (DNumber 3)) (MAdd a b)
+implem pc (MMov a b) = nobranch a a ++ implem (pc + 3) (MAdd a b)
 implem _ (MSTI a b) =
   nobranch a (DImm 0)
-    ++ nobranch (DImm 0) (DSum DCur (DNumber 9))
+    ++ nobranch (DImm 0) (DCur + 9)
     ++ nobranch (DImm 0) (DImm 0)
     ++ nobranch b (DImm 0)
     ++ nobranch (DImm 0) (DNumber 0)
     ++ nobranch (DImm 0) (DImm 0)
-    ++ nobranch (DDiff DCur (DNumber 5)) (DDiff DCur (DNumber 6))
+    ++ nobranch (DCur - 5) (DCur - 6)
 implem _ (MLDI a b) =
   nobranch b (DImm 0)
-    ++ nobranch (DImm 0) (DSum DCur (DNumber 5))
+    ++ nobranch (DImm 0) (DCur + 5)
     ++ nobranch (DImm 0) (DImm 0)
     ++ nobranch (DNumber 0) (DImm 0)
     ++ nobranch (DImm 0) a
     ++ nobranch (DImm 0) (DImm 0)
-    ++ nobranch (DDiff DCur (DNumber 9)) (DDiff DCur (DNumber 10))
-implem pc (MPush a) = implem pc (MSTI (DReg RSP) a) ++ implem (DSum pc (DNumber 21)) (MDec (DReg RSP))
-implem pc (MPop a) = implem pc (MInc (DReg RSP)) ++ implem (DSum pc (DNumber 3)) (MLDI (DReg RSP) a)
+    ++ nobranch (DCur - 9) (DCur - 10)
+implem pc (MPush a) = implem pc (MSTI (DReg RSP) a) ++ implem (pc + 21) (MDec (DReg RSP))
+implem pc (MPop a) = implem pc (MInc (DReg RSP)) ++ implem (pc + 3) (MLDI (DReg RSP) a)
 implem _ (MAdd a b) = nobranch b (DImm 0) ++ nobranch (DImm 0) a ++ nobranch (DImm 0) (DImm 0)
 implem _ (MSub a b) = nobranch b a
 implem _ (MMul a b) =
-  [DSum DCur (DNumber 7), DSum DCur (DNumber 6), DSum DCur (DNumber 1), DSum DCur (DNumber 3), DSum DCur (DNumber 2), DSum DCur (DNumber 3), DNumber 0, DNumber 0]
+  [DCur + 7, DCur + 6, DCur + 1, DCur + 3, DCur + 2, DCur + 3, 0, 0]
     ++ nobranch b (DImm 0)
     ++ [DImm 0, DDiff DCur (DNumber 6), DSum DCur (DNumber 16)]
     ++ nobranch (DImm 0) (DImm 0)
@@ -77,30 +79,30 @@ implem _ (MMul a b) =
 implem _ (MDiv a b) =
   [DSum DCur (DNumber 3), DSum DCur (DNumber 2), DSum DCur (DNumber 2), DNumber 0]
     ++ nobranch (DImm (-1)) a
-    ++ nobranch (DImm (-1)) (DDiff DCur (DNumber 5))
-    ++ [b, a, DSum DCur (DNumber 4)]
-    ++ [DImm 0, DImm 0, DDiff DCur (DNumber 8)]
+    ++ nobranch (DImm (-1)) (DCur - 5)
+    ++ [b, a, DCur + 4]
+    ++ [DImm 0, DImm 0, DCur - 8]
     ++ nobranch a a
-    ++ nobranch (DDiff DCur (DNumber 16)) (DImm 0)
+    ++ nobranch (DCur - 16) (DImm 0)
     ++ nobranch (DImm 0) a
     ++ nobranch (DImm 0) (DImm 0)
     ++ nobranch (DImm 1) a
 implem pc (MMod a b) =
   nobranch (DImm (-1)) a
-    ++ [b, a, DSum DCur (DNumber 4)]
-    ++ [DImm 0, DImm 0, DDiff DCur (DNumber 5)]
-    ++ implem (DSum pc (DNumber 9)) (MAdd a b)
+    ++ [b, a, DCur + 4]
+    ++ [DImm 0, DImm 0, DCur - 5]
+    ++ implem (pc + 9) (MAdd a b)
     ++ nobranch (DImm 1) a
 implem pc (MAnd a b) = implem pc (MMul a b)
 implem pc (MNot a) =
   nobranch a (DImm 1)
-    ++ implem (DSum pc (DNumber 3)) (MMov a (DImm 1))
+    ++ implem (pc + 3) (MMov a (DImm 1))
     ++ nobranch (DImm 1) (DImm 1)
     ++ nobranch (DImm (-1)) (DImm 1)
 implem pc (MOr a b) =
   implem pc (MAdd a b)
-    ++ [DImm 1, a, DSum DCur (DNumber 4)]
-    ++ implem (DSum pc (DNumber 12)) (MMov a (DImm 1))
+    ++ [DImm 0, a, DCur + 4]
+    ++ implem (pc + 12) (MMov a (DImm 1))
 implem _ (MJmp a) = [DImm 0, DImm 0, a]
 implem pc (MInc a) = implem pc (MSub a (DImm (-1)))
 implem pc (MDec a) = implem pc (MSub a (DImm 1))
@@ -108,36 +110,43 @@ implem pc (MOut a) = implem pc (MSub (DReg ROut) a)
 implem pc (MDOut a) =
   let c = DImm (charValue '0')
    in implem pc (MAdd c a)
-        ++ implem (DSum pc (DNumber 9)) (MOut c)
+        ++ implem (pc + 9) (MOut c)
         ++ nobranch c c
         ++ nobranch (DImm (-charValue '0')) c
 implem pc (MPrint a) =
-  let x = DSum pc (DNumber 3)
-   in [DSum DCur (DNumber 3), DSum DCur (DNumber 2), DSum DCur (DNumber 2), DNumber 0]
-        ++ ( zip
-               (map (DSum pc . DNumber) [4, 7 ..])
-               [ MMov x a,
-                 MDiv x (DImm 10000),
-                 MDOut x,
-                 MMov x a,
-                 MDiv x (DImm 1000),
-                 MMod x (DImm 10),
-                 MDOut x,
-                 MMov x a,
-                 MDiv x (DImm 100),
-                 MMod x (DImm 10),
-                 MDOut x,
-                 MMov x a,
-                 MDiv x (DImm 10),
-                 MMod x (DImm 10),
-                 MDOut x,
-                 MMov x a,
-                 MMod x (DImm 10),
-                 MDOut x
-               ]
-               >>= uncurry implem
-           )
+  let x = pc + 3
+   in [DCur + 3, DCur + 2, DCur + 2, DNumber 0]
+        ++ implemList
+          (pc + 4)
+          [ MMov x a,
+            MDiv x (DImm 10000),
+            MDOut x,
+            MMov x a,
+            MDiv x (DImm 1000),
+            MMod x (DImm 10),
+            MDOut x,
+            MMov x a,
+            MDiv x (DImm 100),
+            MMod x (DImm 10),
+            MDOut x,
+            MMov x a,
+            MDiv x (DImm 10),
+            MMod x (DImm 10),
+            MDOut x,
+            MMov x a,
+            MMod x (DImm 10),
+            MDOut x
+          ]
 implem _ (MString s) = map DChar s
+implem pc (MCall a) =
+  let p = implem pc (MPush (pc + fromIntegral (3 + length p)))
+   in p ++ implem (pc + fromIntegral (length p)) (MJmp a)
+implem pc MRet =
+  let p = implem pc (MPop (pc + fromIntegral (2 + length p)))
+   in p ++ [DImm 0, DImm 0, DNumber 0]
+
+implemList :: Directive -> [Macro] -> [Directive]
+implemList pc = snd . foldl (\(pc', r) m -> let ds = implem pc' m in (pc' + DNumber (length ds), r ++ ds)) (pc, [])
 
 instance Show Macro where
   show (MMov a b) = "MOV " ++ show a ++ ", " ++ show b
@@ -160,6 +169,8 @@ instance Show Macro where
   show (MDOut a) = "DOUT " ++ show a
   show (MPrint a) = "PRNT " ++ show a
   show (MString a) = "STR " ++ show a
+  show (MCall a) = "CALL " ++ show a
+  show MRet = "RET"
 
 nobranch :: Directive -> Directive -> [Directive]
 nobranch a b = [a, b, DSum DCur (DNumber 1)]
@@ -197,6 +208,14 @@ instance Show Directive where
   show (DMul a b) = "(" ++ show a ++ " * " ++ show b ++ ")"
   show (DMacro m) = show m
   show (DReg m) = "$" ++ show m
+
+instance Num Directive where
+  (+) = DSum
+  (-) = DDiff
+  (*) = DMul
+  abs = undefined
+  signum = undefined
+  fromInteger = DNumber . fromInteger
 
 data LDirective = LabelledDirective String Directive | RawDirective Directive
 
@@ -246,7 +265,7 @@ constSection a =
   let consts = nub $ a >>= (collectConsts . directives)
       preSection = Section "__consts" Nothing (LabelledDirective "_c" (DNumber $ head consts) : map (RawDirective . DNumber) (tail consts))
       resolved = map (constReplace consts) a
-   in preSection : resolved
+   in if null consts then a else preSection : resolved
 
 firstFit :: [(Int, Int)] -> Int -> Int
 firstFit taken len =
@@ -280,6 +299,11 @@ placeSections a =
           a
         else
           placeSections (replace (placeSection a) (fromJust i) a)
+
+padSections :: Assembly -> Assembly
+padSections a =
+  let a' = sortOn (fromJust . location) a
+   in head a' : concat (zipWith (\l r -> [let s = (+ length (directives l)) <$> location l in Section "pad" s (replicate (fromJust (location r) - fromJust s) (RawDirective 0)), r]) a' (tail a'))
 
 squash :: Assembly -> [LDirective]
 squash a =
@@ -346,7 +370,7 @@ resolveMacros :: Assembly -> Assembly
 resolveMacros = map (\s -> s {directives = zip [0 :: Int ..] (directives s) >>= (\(i, d) -> resolveMacrosD ("_" ++ name s ++ show i) d)})
 
 assemble :: Assembly -> [Int]
-assemble = toInts . resolveLabels . squash . placeSections . constSection . resolveMacros
+assemble = toInts . resolveLabels . squash . padSections . placeSections . constSection . resolveMacros
 
 output :: String -> [Int] -> IO ()
 output f dat = withFile f WriteMode $ \h -> do
@@ -461,6 +485,14 @@ parseMacro =
             r <- MString <$> some (noneOf "\"\n")
             _ <- char '\"'
             return r
+        )
+    <|> ( do
+            _ <- string "CALL"
+            MCall <$> parseDirective
+        )
+    <|> ( do
+            _ <- string "RET"
+            return MRet
         )
 
 register :: Parsec Void String Reg

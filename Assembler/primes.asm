@@ -7,9 +7,9 @@ entry:
   vy vz prime
   MOV vy vx
   MOD vy vd
-  vz vz (?+1)
-  vy vz (?+1)
-  vy vy (?+1)
+  SUB vz vz
+  SUB vz vy
+  SUB vy vy
   vz vy nonprime
   INC vd
   JMP entry
