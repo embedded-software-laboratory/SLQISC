@@ -27,6 +27,7 @@ library
   exposed-modules:
       Assembler
       Assembly
+      Parser
   other-modules:
       Paths_SubleqAssembler
   autogen-modules:

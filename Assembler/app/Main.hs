@@ -1,8 +1,8 @@
 module Main (main) where
 
 import Assembler
+import Parser
 
-import Text.Megaparsec
 import System.Environment
 import Data.Char
 
@@ -12,8 +12,8 @@ main = do
     [filename] -> return filename
     _ -> error "Usage: assembler <filename>"
   input <- readFile filename
-  case parse parseAssembly filename input of
-    Left err -> putStrLn $ errorBundlePretty err
+  case parseAssembly filename input of
+    Left err -> putStrLn err
     Right asm -> do
       let cmp = assemble asm
       print cmp

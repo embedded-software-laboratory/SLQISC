@@ -1,15 +1,20 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Assembler (assemble, output, parseAssembly) where
+module Assembler (assemble, output) where
 
 import Assembly
-import Data.Char
+  ( Assembly,
+    Directive (..),
+    LDirective (..),
+    Reg (..),
+    Section (..),
+    charValue,
+    implem,
+    sectionSize,
+  )
 import Data.List (elemIndex, findIndex, nub, sortOn)
 import Data.Maybe
-import Data.Void
 import System.IO
-import Text.Megaparsec
-import Text.Megaparsec.Char
 import Text.Printf
 
 cConst :: Directive -> Maybe Int
@@ -151,171 +156,3 @@ output :: String -> [Int] -> IO ()
 output f dat = withFile f WriteMode $ \h -> do
   hPutStrLn h "v3.0 hex bytes plain big-endian"
   hPutStrLn h $ unwords $ map (printf "%04hx") dat
-
-parseCalcDirective :: Parsec Void String Directive
-parseCalcDirective = do
-  d1 <- parseDirective
-  _ <- many (oneOf " \n")
-  op <- oneOf "+-*"
-  _ <- many (oneOf " \n")
-  d2 <- parseDirective
-  return $ case op of
-    '+' -> DSum d1 d2
-    '-' -> DDiff d1 d2
-    '*' -> DMul d1 d2
-    _ -> undefined
-
-parseMacro :: Parsec Void String Macro
-parseMacro =
-  ( do
-      _ <- string "MOV"
-      a <- parseDirective
-      MMov a <$> parseDirective
-  )
-    <|> ( do
-            _ <- string "STI"
-            a <- parseDirective
-            MSTI a <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "LDI"
-            a <- parseDirective
-            MLDI a <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "PUSH"
-            MPush <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "POP"
-            MPop <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "ADD"
-            a <- parseDirective
-            MAdd a <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "SUB"
-            a <- parseDirective
-            MSub a <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "MUL"
-            a <- parseDirective
-            MMul a <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "DIV"
-            a <- parseDirective
-            MDiv a <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "MOD"
-            a <- parseDirective
-            MMod a <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "AND"
-            a <- parseDirective
-            MAnd a <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "OR"
-            a <- parseDirective
-            MOr a <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "NOT"
-            MNot <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "JMP"
-            MJmp <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "INC"
-            MInc <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "DEC"
-            MDec <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "OUT"
-            MOut <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "DOUT"
-            MDOut <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "PRNT"
-            MPrint <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "STR"
-            _ <- many (oneOf " \n")
-            _ <- char '\"'
-            r <- MString <$> some (noneOf "\"\n")
-            _ <- char '\"'
-            return r
-        )
-    <|> ( do
-            _ <- string "CALL"
-            MCall <$> parseDirective
-        )
-    <|> ( do
-            _ <- string "RET"
-            return MRet
-        )
-
-register :: Parsec Void String Reg
-register = do
-  (string "O" >> return ROut)
-    <|> (string "I" >> return RIn)
-    <|> (string "SP" >> return RSP)
-    <|> (RGPR . read <$> some digitChar)
-
-parseDirective :: Parsec Void String Directive
-parseDirective = do
-  _ <- many (oneOf " \n")
-  n <- oneOf "#!@?><(-" <|> digitChar <|> lowerChar
-  case n of
-    '#' -> DImm . read <$> many (noneOf " \n")
-    '!' -> DChar <$> anySingle
-    '@' -> DImmChar <$> anySingle
-    '?' -> return DCur
-    '$' -> DReg <$> register
-    '(' -> parseCalcDirective <* char ')'
-    nn | isDigit nn || nn == '-' -> DNumber . read . (nn :) <$> many (noneOf ")( \n")
-    nn | isLower nn -> DLabel . (nn :) <$> many (noneOf " \n")
-    _ -> fail "no directive"
-
-parseMDirective :: Parsec Void String Directive
-parseMDirective = do
-  _ <- many (oneOf " \n")
-  (DMacro <$> parseMacro) <|> parseDirective
-
-parseStringLDirective :: Parsec Void String LDirective
-parseStringLDirective = do
-  l <- some lowerChar
-  (char ':' *> (LabelledDirective l <$> parseMDirective)) <|> return (RawDirective (DLabel l))
-
-parseLDirective :: Parsec Void String LDirective
-parseLDirective = parseStringLDirective <|> RawDirective <$> parseMDirective
-
-parseSection :: Parsec Void String Section
-parseSection = do
-  _ <- many (oneOf " \n")
-  nme <- string "SECTION " *> many (noneOf " [\n") <* optional (char ' ')
-  loc <- optional (char '[' *> char '@' *> (read <$> many (noneOf "]\n") <* char ']')) <* char '\n'
-  _ <- many (oneOf " \n")
-  dirs <- many $ do
-    d <- parseLDirective
-    _ <- many (oneOf " \n")
-    return d
-  return $ Section nme loc dirs
-
-parseAssembly :: Parsec Void String Assembly
-parseAssembly = many parseSection

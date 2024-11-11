@@ -1,12 +1,21 @@
-module Assembly where
+module Assembly
+  ( Assembly,
+    Section (..),
+    LDirective (..),
+    Directive (..),
+    Reg (..),
+    Macro (..),
+    charValue,
+    implem,
+    sectionSize,
+  )
+where
 
-import Data.Maybe
-
-import Data.List
-
+import Data.List (elemIndex)
+import Data.Maybe (fromJust)
 
 charArray :: String
-charArray = " ABCDEFGHIJKLMNOPQRSTUVWXYZ!0123456789abcdefghijklmnopqrstuvwxyz"
+charArray = " ABCDEFGHIJKLMNOPQRSTUVWXYZ!0123456789abcdefghijklmnopqrstuvwxyz+-"
 
 charValue :: Char -> Int
 charValue c = fromJust $ elemIndex c charArray
@@ -26,6 +35,7 @@ data Macro
   | MOr Directive Directive
   | MNot Directive
   | MJmp Directive
+  | MJLeq Directive Directive
   | MInc Directive
   | MDec Directive
   | MOut Directive
@@ -98,6 +108,7 @@ implem pc (MOr a b) =
     ++ [DImm 0, a, DCur + 4]
     ++ implem (pc + 12) (MMov a (DImm 1))
 implem _ (MJmp a) = [DImm 0, DImm 0, a]
+implem _ (MJLeq a t) = [DImm 0, a, t]
 implem pc (MInc a) = implem pc (MSub a (DImm (-1)))
 implem pc (MDec a) = implem pc (MSub a (DImm 1))
 implem pc (MOut a) = implem pc (MSub (DReg ROut) a)
@@ -157,6 +168,7 @@ instance Show Macro where
   show (MOr a b) = "OR " ++ show a ++ ", " ++ show b
   show (MNot a) = "NOT " ++ show a
   show (MJmp a) = "JMP " ++ show a
+  show (MJLeq a l) = "JLEQ " ++ show a ++ ", " ++ show l
   show (MInc a) = "INC " ++ show a
   show (MDec a) = "DEC " ++ show a
   show (MOut a) = "OUT " ++ show a
