@@ -21,94 +21,46 @@ calcDirective = do
     '*' -> DMul d1 d2
     _ -> undefined
 
+macroNil :: String -> Macro -> Parser Macro
+macroNil name cons = do
+  _ <- string name
+  return cons
+
+macroUn :: String -> (Directive -> Macro) -> Parser Macro
+macroUn name cons = do
+  _ <- string name
+  cons <$> directive
+
+macroBin :: String -> (Directive -> Directive -> Macro) -> Parser Macro
+macroBin name cons = do
+  _ <- string name
+  cons <$> directive <*> directive
+
 macro :: Parser Macro
 macro =
-  ( do
-      _ <- string "MOV"
-      a <- directive
-      MMov a <$> directive
-  )
-    <|> ( do
-            _ <- string "STI"
-            a <- directive
-            MSTI a <$> directive
-        )
-    <|> ( do
-            _ <- string "LDI"
-            a <- directive
-            MLDI a <$> directive
-        )
-    <|> ( do
-            _ <- string "PUSH"
-            MPush <$> directive
-        )
-    <|> ( do
-            _ <- string "POP"
-            MPop <$> directive
-        )
-    <|> ( do
-            _ <- string "ADD"
-            a <- directive
-            MAdd a <$> directive
-        )
-    <|> ( do
-            _ <- string "SUB"
-            a <- directive
-            MSub a <$> directive
-        )
-    <|> ( do
-            _ <- string "MUL"
-            a <- directive
-            MMul a <$> directive
-        )
-    <|> ( do
-            _ <- string "DIV"
-            a <- directive
-            MDiv a <$> directive
-        )
-    <|> ( do
-            _ <- string "MOD"
-            a <- directive
-            MMod a <$> directive
-        )
-    <|> ( do
-            _ <- string "AND"
-            a <- directive
-            MAnd a <$> directive
-        )
-    <|> ( do
-            _ <- string "OR"
-            a <- directive
-            MOr a <$> directive
-        )
-    <|> ( do
-            _ <- string "NOT"
-            MNot <$> directive
-        )
-    <|> ( do
-            _ <- string "JMP"
-            MJmp <$> directive
-        )
-    <|> ( do
-            _ <- string "INC"
-            MInc <$> directive
-        )
-    <|> ( do
-            _ <- string "DEC"
-            MDec <$> directive
-        )
-    <|> ( do
-            _ <- string "OUT"
-            MOut <$> directive
-        )
-    <|> ( do
-            _ <- string "DOUT"
-            MDOut <$> directive
-        )
-    <|> ( do
-            _ <- string "PRNT"
-            MPrint <$> directive
-        )
+  macroBin "MOV" MMov
+    <|> macroBin "STI" MSTI
+    <|> macroBin "LDI" MLDI
+    <|> macroBin "LDI" MLDI
+    <|> macroUn "PUSH" MPush
+    <|> macroUn "POP" MPop
+    <|> macroBin "ADD" MAdd
+    <|> macroBin "SUB" MSub
+    <|> macroBin "MUL" MMul
+    <|> macroBin "DIV" MDiv
+    <|> macroBin "MOD" MMod
+    <|> macroBin "AND" MAnd
+    <|> macroBin "OR" MOr
+    <|> macroUn "NOT" MNot
+    <|> macroUn "JMP" MJmp
+    <|> macroBin "JLEQ" MJLeq
+    <|> macroUn "INC" MInc
+    <|> macroUn "DEC" MDec
+    <|> macroUn "OUT" MOut
+    <|> macroUn "DOUT" MDOut
+    <|> macroUn "PRNT" MPrint
+    <|> macroUn "CALL" MCall
+    <|> macroNil "RET" MRet
     <|> ( do
             _ <- string "STR"
             _ <- many (oneOf " \n")
@@ -116,14 +68,6 @@ macro =
             r <- MString <$> some (noneOf "\"\n")
             _ <- char '\"'
             return r
-        )
-    <|> ( do
-            _ <- string "CALL"
-            MCall <$> directive
-        )
-    <|> ( do
-            _ <- string "RET"
-            return MRet
         )
 
 register :: Parser Reg
