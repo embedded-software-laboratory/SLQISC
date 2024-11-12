@@ -38,7 +38,7 @@ replaceConst consts (LabelledDirective l d) = LabelledDirective l (replaceConst'
 replaceConst consts (RawDirective d) = RawDirective (replaceConst' consts d)
 
 constReplace :: [Int] -> Section -> Section
-constReplace consts s = Section (name s) (location s) (map (replaceConst consts) (directives s))
+constReplace consts s = Section (sName s) (location s) (map (replaceConst consts) (directives s))
 
 constSection :: Assembly -> Assembly
 constSection a =
@@ -64,7 +64,7 @@ placeSection :: Assembly -> Section -> Section
 placeSection a s =
   let pos = sortOn fst $ mapMaybe (\sec -> location sec >>= \loc -> return (loc, sectionSize sec)) a
       ff = firstFit pos (sectionSize s)
-   in Section (name s) (Just ff) (directives s)
+   in Section (sName s) (Just ff) (directives s)
 
 replace :: (a -> a) -> Int -> [a] -> [a]
 replace f 0 (x : xs) = f x : xs
@@ -147,7 +147,7 @@ resolveMacrosD _ (LabelledDirective l d) = (\case (x : xs) -> LabelledDirective 
 resolveMacrosD free (RawDirective d) = (\case (x : xs) -> LabelledDirective (show free) x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel (show free)) d)
 
 resolveMacros :: Assembly -> Assembly
-resolveMacros = map (\s -> s {directives = zip [0 :: Int ..] (directives s) >>= (\(i, d) -> resolveMacrosD ("_" ++ name s ++ show i) d)})
+resolveMacros = map (\s -> s {directives = zip [0 :: Int ..] (directives s) >>= (\(i, d) -> resolveMacrosD ("_" ++ sName s ++ show i) d)})
 
 assemble :: Assembly -> [Int]
 assemble = toInts . resolveLabels . squash . padSections . placeSections . constSection . resolveMacros

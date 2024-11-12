@@ -80,7 +80,7 @@ register = do
 directive :: Parser Directive
 directive = do
   _ <- many (oneOf " \n")
-  n <- oneOf "#!@?><(-" <|> digitChar <|> lowerChar
+  n <- oneOf "#!@$?(-" <|> digitChar <|> lowerChar
   case n of
     '#' -> DImm . read <$> many (noneOf " \n")
     '!' -> DChar <$> anySingle
@@ -88,8 +88,8 @@ directive = do
     '?' -> return DCur
     '$' -> DReg <$> register
     '(' -> calcDirective <* char ')'
-    nn | isDigit nn || nn == '-' -> DNumber . read . (nn :) <$> many (noneOf ")( \n")
-    nn | isLower nn -> DLabel . (nn :) <$> many (noneOf " \n")
+    nn | isDigit nn || nn == '-' -> DNumber . read . (nn :) <$> many digitChar
+    nn | isLower nn -> DLabel . (nn :) <$> many lowerChar
     _ -> fail "no directive"
 
 mDirective :: Parser Directive

@@ -179,7 +179,7 @@ instance Show Macro where
   show MRet = "RET"
 
 nobranch :: Directive -> Directive -> [Directive]
-nobranch a b = [a, b, DSum DCur (DNumber 1)]
+nobranch a b = [a, b, DCur + 1]
 
 data Reg = ROut | RIn | RSP | RGPR Int
 
@@ -230,13 +230,13 @@ instance Show LDirective where
   show (RawDirective d) = show d
 
 data Section = Section
-  { name :: String,
+  { sName :: String,
     location :: Maybe Int,
     directives :: [LDirective]
   }
 
 instance Show Section where
-  show s = "SECTION " ++ name s ++ " [@" ++ maybe "???" show (location s) ++ "]\n" ++ unlines (map (("  " ++) . show) (directives s))
+  show s = "SECTION " ++ sName s ++ " [@" ++ maybe "???" show (location s) ++ "]\n" ++ unlines (map (("  " ++) . show) (directives s))
 
 sectionSize :: Section -> Int
 sectionSize s = length $ directives s
