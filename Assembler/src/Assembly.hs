@@ -31,6 +31,7 @@ data Macro
   | MMul Directive Directive
   | MDiv Directive Directive
   | MMod Directive Directive
+  | MNeg Directive
   | MAnd Directive Directive
   | MOr Directive Directive
   | MNot Directive
@@ -108,6 +109,10 @@ implem pc (MMod a b) =
     ++ [DImm 0, DImm 0, DCur - 5]
     ++ implem (pc + 9) (MAdd a b)
     ++ nobranch (DImm 1) a
+implem pc (MNeg a) =
+  let jmp = implem pc (MJmp (pcT + 1))
+      pcT = pc + fromIntegral (length jmp)
+   in jmp ++ [DNumber 0] ++ nobranch pcT pcT ++ nobranch a pcT ++ implem (pcT + 6) (MMov a pcT)
 implem pc (MAnd a b) = implem pc (MMul a b)
 implem pc (MNot a) =
   nobranch a (DImm 1)
@@ -175,6 +180,7 @@ instance Show Macro where
   show (MMul a b) = "MUL " ++ show a ++ ", " ++ show b
   show (MDiv a b) = "DIV " ++ show a ++ ", " ++ show b
   show (MMod a b) = "MOD " ++ show a ++ ", " ++ show b
+  show (MNeg a) = "NEG " ++ show a
   show (MAnd a b) = "AND " ++ show a ++ ", " ++ show b
   show (MOr a b) = "OR " ++ show a ++ ", " ++ show b
   show (MNot a) = "NOT " ++ show a

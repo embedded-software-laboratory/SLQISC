@@ -54,6 +54,7 @@ macro =
     <|> macroBin "MUL" MMul
     <|> macroBin "DIV" MDiv
     <|> macroBin "MOD" MMod
+    <|> macroUn "NEG" MNeg
     <|> macroBin "AND" MAnd
     <|> macroBin "OR" MOr
     <|> macroUn "NOT" MNot
