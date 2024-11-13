@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Assembler (assemble, output) where
+module Assembler (assemble, debugAssemble, output) where
 
 import Assembly
   ( Assembly,
@@ -151,6 +151,33 @@ resolveMacros = map (\s -> s {directives = zip [0 :: Int ..] (directives s) >>= 
 
 assemble :: Assembly -> [Int]
 assemble = toInts . resolveLabels . squash . padSections . placeSections . constSection . resolveMacros
+
+debugAssemble :: Assembly -> IO [Int]
+debugAssemble a = do
+  putStrLn "Input: "
+  print a
+  let demacro = resolveMacros a
+  putStrLn "Demacro: "
+  print demacro
+  let constS = constSection demacro
+  putStrLn "Const section: "
+  print constS
+  let placed = placeSections constS
+  putStrLn "Placed: "
+  print placed
+  let padded = padSections placed
+  putStrLn "Padded: "
+  print padded
+  let squashed = squash padded
+  putStrLn "Squashed: "
+  print squashed
+  let resolved = resolveLabels squashed
+  putStrLn "Resolved Labels: "
+  print resolved
+  let assembled = toInts resolved
+  putStrLn "Assembled: "
+  print assembled
+  return assembled
 
 output :: String -> [Int] -> IO ()
 output f dat = withFile f WriteMode $ \h -> do
