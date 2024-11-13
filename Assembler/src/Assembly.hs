@@ -64,7 +64,7 @@ implem _ (MLDI a b) =
     ++ nobranch (DImm 0) (DImm 0)
     ++ nobranch (DCur - 9) (DCur - 10)
 implem pc (MPush a) = implem pc (MSTI (DReg RSP) a) ++ implem (pc + 21) (MDec (DReg RSP))
-implem pc (MPop a) = implem pc (MInc (DReg RSP)) ++ implem (pc + 3) (MLDI (DReg RSP) a)
+implem pc (MPop a) = implem pc (MInc (DReg RSP)) ++ implem (pc + 3) (MLDI a (DReg RSP))
 implem _ (MAdd a b) = nobranch b (DImm 0) ++ nobranch (DImm 0) a ++ nobranch (DImm 0) (DImm 0)
 implem _ (MSub a b) = nobranch b a
 implem _ (MMul a b) =
@@ -145,7 +145,7 @@ implem pc (MPrint a) =
 implem _ (MString s) = map DChar s
 implem pc (MCall a) =
   let p = implem pc (MPush (pc + fromIntegral (3 + length p)))
-   in p ++ implem (pc + fromIntegral (length p)) (MJmp a)
+   in p ++ implem (pc + fromIntegral (length p)) (MJmp a) ++ [DCur + 1]
 implem pc MRet =
   let p = implem pc (MPop (pc + fromIntegral (2 + length p)))
    in p ++ [DImm 0, DImm 0, DNumber 0]
