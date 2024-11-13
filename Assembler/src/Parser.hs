@@ -8,12 +8,17 @@ import Text.Megaparsec.Char
 
 type Parser a = Parsec Void String a
 
+cWhitespace :: Parser ()
+cWhitespace = do
+  _ <- many (oneOf " \n" <|> (string "//" >> many (noneOf "\n") >> char '\n' >> return ' '))
+  return ()
+
 calcDirective :: Parser Directive
 calcDirective = do
   d1 <- directive
-  _ <- many (oneOf " \n")
+  cWhitespace
   op <- oneOf "+-*"
-  _ <- many (oneOf " \n")
+  cWhitespace
   d2 <- directive
   return $ case op of
     '+' -> DSum d1 d2
@@ -63,7 +68,7 @@ macro =
     <|> macroNil "RET" MRet
     <|> ( do
             _ <- string "STR"
-            _ <- many (oneOf " \n")
+            cWhitespace
             _ <- char '\"'
             r <- MString <$> some (noneOf "\"\n")
             _ <- char '\"'
@@ -79,7 +84,7 @@ register = do
 
 directive :: Parser Directive
 directive = do
-  _ <- many (oneOf " \n")
+  cWhitespace
   n <- oneOf "#!@$?(-" <|> digitChar <|> lowerChar
   case n of
     '#' -> DImm . read <$> many (noneOf " \n")
@@ -94,7 +99,7 @@ directive = do
 
 mDirective :: Parser Directive
 mDirective = do
-  _ <- many (oneOf " \n")
+  cWhitespace
   (DMacro <$> macro) <|> directive
 
 stringLDirective :: Parser LDirective
@@ -107,13 +112,13 @@ lDirective = stringLDirective <|> RawDirective <$> mDirective
 
 section :: Parser Section
 section = do
-  _ <- many (oneOf " \n")
+  cWhitespace
   nme <- string "SECTION " *> many (noneOf " [\n") <* optional (char ' ')
   loc <- optional (char '[' *> char '@' *> (read <$> many (noneOf "]\n") <* char ']')) <* char '\n'
-  _ <- many (oneOf " \n")
+  cWhitespace
   dirs <- many $ do
     d <- lDirective
-    _ <- many (oneOf " \n")
+    cWhitespace
     return d
   return $ Section nme loc dirs
 
