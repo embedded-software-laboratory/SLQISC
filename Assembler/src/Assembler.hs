@@ -120,7 +120,7 @@ regToInt :: Reg -> Int
 regToInt ROut = -1
 regToInt RIn = -2
 regToInt RSP = -3
-regToInt (RGPR i) = -(i + 16)
+regToInt (RGPR i) = -(i + 17)
 
 toInt :: Directive -> Int
 toInt (DNumber i) = i

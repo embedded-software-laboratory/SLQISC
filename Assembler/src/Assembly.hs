@@ -47,23 +47,34 @@ data Macro
 
 implem :: Directive -> Macro -> [Directive]
 implem pc (MMov a b) = nobranch a a ++ implem (pc + 3) (MAdd a b)
-implem _ (MSTI a b) =
-  nobranch a (DImm 0)
-    ++ nobranch (DImm 0) (DCur + 9)
-    ++ nobranch (DImm 0) (DImm 0)
-    ++ nobranch b (DImm 0)
-    ++ nobranch (DImm 0) (DNumber 0)
-    ++ nobranch (DImm 0) (DImm 0)
-    ++ nobranch (DCur - 5) (DCur - 6)
+implem pc (MSTI a b) =
+  let p0 = pc + 15
+      p1 = pc + 16
+      p2 = pc + 22
+   in nobranch a (DImm 0)
+        ++ nobranch (DImm 0) p0
+        ++ nobranch (DImm 0) p1
+        ++ nobranch (DImm 0) p2
+        ++ nobranch (DImm 0) (DImm 0)
+        ++ nobranch (DNumber 0) (DNumber 0)
+        ++ nobranch b (DImm 0)
+        ++ nobranch (DImm 0) (DNumber 0)
+        ++ nobranch (DImm 0) (DImm 0)
+        ++ nobranch p0 p0
+        ++ nobranch p1 p1
+        ++ nobranch p2 p2
 implem _ (MLDI a b) =
   nobranch b (DImm 0)
-    ++ nobranch (DImm 0) (DCur + 5)
+    ++ nobranch (DImm 0) (DCur + 8)
     ++ nobranch (DImm 0) (DImm 0)
+    ++ nobranch a a
     ++ nobranch (DNumber 0) (DImm 0)
     ++ nobranch (DImm 0) a
     ++ nobranch (DImm 0) (DImm 0)
     ++ nobranch (DCur - 9) (DCur - 10)
-implem pc (MPush a) = implem pc (MSTI (DReg RSP) a) ++ implem (pc + 21) (MDec (DReg RSP))
+implem pc (MPush a) =
+  let p = implem pc (MSTI (DReg RSP) a)
+   in p ++ implem (pc + fromIntegral (length p)) (MDec (DReg RSP))
 implem pc (MPop a) = implem pc (MInc (DReg RSP)) ++ implem (pc + 3) (MLDI a (DReg RSP))
 implem _ (MAdd a b) = nobranch b (DImm 0) ++ nobranch (DImm 0) a ++ nobranch (DImm 0) (DImm 0)
 implem _ (MSub a b) = nobranch b a

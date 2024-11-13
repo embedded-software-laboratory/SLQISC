@@ -1,4 +1,5 @@
 SECTION main[@0]
+  MOV $SP #65280
   MOV $0 ctest
   CALL sign
   PRNT $0
