@@ -41,9 +41,15 @@ macroBin name cons = do
   _ <- string name
   cons <$> directive <*> directive
 
+macroTern :: String -> (Directive -> Directive -> Directive -> Macro) -> Parser Macro
+macroTern name cons = do
+  _ <- string name
+  cons <$> directive <*> directive <*> directive
+
 macro :: Parser Macro
 macro =
-  macroBin "MOV" MMov
+  macroTern "SLQ" MSLQ
+    <|> macroBin "MOV" MMov
     <|> macroBin "STI" MSTI
     <|> macroBin "LDI" MLDI
     <|> macroBin "LDI" MLDI

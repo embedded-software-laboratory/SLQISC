@@ -21,7 +21,8 @@ charValue :: Char -> Int
 charValue c = fromJust $ elemIndex c charArray
 
 data Macro
-  = MMov Directive Directive
+  = MSLQ Directive Directive Directive
+  | MMov Directive Directive
   | MSTI Directive Directive
   | MLDI Directive Directive
   | MPush Directive
@@ -47,6 +48,7 @@ data Macro
   | MRet
 
 implem :: Directive -> Macro -> [Directive]
+implem _ (MSLQ a b c) = [a, b, c]
 implem pc (MMov a b) = nobranch a a ++ implem (pc + 3) (MAdd a b)
 implem pc (MSTI a b) =
   let p0 = pc + 15
@@ -170,6 +172,7 @@ implemList :: Directive -> [Macro] -> [Directive]
 implemList pc = snd . foldl (\(pc', r) m -> let ds = implem pc' m in (pc' + DNumber (length ds), r ++ ds)) (pc, [])
 
 instance Show Macro where
+  show (MSLQ a b c) = "SLQ " ++ show a ++ ", " ++ show b ++ ", " ++ show c
   show (MMov a b) = "MOV " ++ show a ++ ", " ++ show b
   show (MSTI a b) = "STI " ++ show a ++ ", " ++ show b
   show (MLDI a b) = "LDI " ++ show a ++ ", " ++ show b
