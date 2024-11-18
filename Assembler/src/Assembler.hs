@@ -14,6 +14,7 @@ import Assembly
   )
 import Data.List (elemIndex, findIndex, nub, sortOn)
 import Data.Maybe
+import Optimizer (postOptimize, preOptimize)
 import System.IO
 import Text.Printf
 
@@ -150,13 +151,16 @@ resolveMacros :: Assembly -> Assembly
 resolveMacros = map (\s -> s {directives = zip [0 :: Int ..] (directives s) >>= (\(i, d) -> resolveMacrosD ("_" ++ sName s ++ show i) d)})
 
 assemble :: Assembly -> [Int]
-assemble = toInts . resolveLabels . squash . padSections . placeSections . constSection . resolveMacros
+assemble = toInts . postOptimize . resolveLabels . squash . padSections . placeSections . constSection . resolveMacros . preOptimize
 
 debugAssemble :: Assembly -> IO [Int]
 debugAssemble a = do
   putStrLn "Input: "
   print a
-  let demacro = resolveMacros a
+  let preOpt = preOptimize a
+  putStrLn "Pre-Optimized: "
+  print preOpt
+  let demacro = resolveMacros preOpt
   putStrLn "Demacro: "
   print demacro
   let constS = constSection demacro
@@ -174,7 +178,10 @@ debugAssemble a = do
   let resolved = resolveLabels squashed
   putStrLn "Resolved Labels: "
   print resolved
-  let assembled = toInts resolved
+  let postOptimized = postOptimize resolved
+  putStrLn "Post-Optimized: "
+  print postOptimized
+  let assembled = toInts postOptimized
   putStrLn "Assembled: "
   print assembled
   return assembled

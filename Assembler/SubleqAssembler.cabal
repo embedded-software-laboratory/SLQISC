@@ -27,6 +27,7 @@ library
   exposed-modules:
       Assembler
       Assembly
+      Optimizer
       Parser
   other-modules:
       Paths_SubleqAssembler

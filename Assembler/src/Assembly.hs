@@ -8,6 +8,7 @@ module Assembly
     charValue,
     implem,
     sectionSize,
+    labelPreservingMap,
   )
 where
 
@@ -244,6 +245,15 @@ instance Num Directive where
   fromInteger = DNumber . fromInteger
 
 data LDirective = LabelledDirective String Directive | RawDirective Directive
+
+labelPreservingMap :: ([Directive] -> [Directive]) -> [LDirective] -> [LDirective]
+labelPreservingMap f xs = concatMap (\(l, ds) -> relabel (l, f ds)) $ tail $ lsplits xs
+  where
+    relabel (l, d : ds) = LabelledDirective l d : map RawDirective ds
+    relabel (_, []) = undefined
+    lsplits [] = [("", [])]
+    lsplits (RawDirective d : ds) = (\((_, h) : t) -> ("", d : h) : t) $ lsplits ds
+    lsplits (LabelledDirective s d : ds) = ("", []) : (\((_, h) : t) -> (s, d : h) : t) (lsplits ds)
 
 instance Show LDirective where
   show (LabelledDirective l d) = l ++ ": " ++ show d
