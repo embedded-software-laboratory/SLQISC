@@ -153,37 +153,37 @@ resolveMacros = map (\s -> s {directives = zip [0 :: Int ..] (directives s) >>= 
 assemble :: Assembly -> [Int]
 assemble = toInts . postOptimize . resolveLabels . squash . padSections . placeSections . constSection . resolveMacros . preOptimize
 
-debugAssemble :: Assembly -> IO [Int]
-debugAssemble a = do
+debugAssemble :: String -> Assembly -> IO [Int]
+debugAssemble f a = withFile f WriteMode $ \h -> do
   putStrLn "Input: "
-  print a
+  hPrint h a
   let preOpt = preOptimize a
   putStrLn "Pre-Optimized: "
-  print preOpt
+  hPrint h preOpt
   let demacro = resolveMacros preOpt
   putStrLn "Demacro: "
-  print demacro
+  hPrint h demacro
   let constS = constSection demacro
   putStrLn "Const section: "
-  print constS
+  hPrint h constS
   let placed = placeSections constS
   putStrLn "Placed: "
-  print placed
+  hPrint h placed
   let padded = padSections placed
   putStrLn "Padded: "
-  print padded
+  hPrint h padded
   let squashed = squash padded
   putStrLn "Squashed: "
-  print squashed
+  hPrint h squashed
   let resolved = resolveLabels squashed
   putStrLn "Resolved Labels: "
-  print resolved
+  hPrint h resolved
   let postOptimized = postOptimize resolved
   putStrLn "Post-Optimized: "
-  print postOptimized
+  hPrint h postOptimized
   let assembled = toInts postOptimized
   putStrLn "Assembled: "
-  print assembled
+  hPrint h assembled
   return assembled
 
 output :: String -> [Int] -> IO ()

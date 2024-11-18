@@ -17,7 +17,7 @@ main = do
   case parseAssembly filename input of
     Left err -> putStrLn err
     Right asm -> do
-      cmp <- if verbose then debugAssemble asm else return $ assemble asm
-      when verbose $ print cmp
       let name = reverse $ takeWhile isAlphaNum $ reverse $ takeWhile (/= '.') filename
+      cmp <- if verbose then debugAssemble (name ++ ".out") asm else return $ assemble asm
+      when verbose $ print cmp
       output (name ++ ".hex") cmp

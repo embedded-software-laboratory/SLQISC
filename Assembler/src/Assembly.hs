@@ -247,13 +247,13 @@ instance Num Directive where
 data LDirective = LabelledDirective String Directive | RawDirective Directive
 
 labelPreservingMap :: ([Directive] -> [Directive]) -> [LDirective] -> [LDirective]
-labelPreservingMap f xs = concatMap (\(l, ds) -> relabel (l, f ds)) $ tail $ lsplits xs
+labelPreservingMap f xs = concatMap (\(l, ds) -> relabel (l, f ds)) $ lsplits xs
   where
     relabel (l, d : ds) = LabelledDirective l d : map RawDirective ds
-    relabel (_, []) = undefined
+    relabel (_, []) = []
     lsplits [] = [("", [])]
-    lsplits (RawDirective d : ds) = (\((_, h) : t) -> ("", d : h) : t) $ lsplits ds
-    lsplits (LabelledDirective s d : ds) = ("", []) : (\((_, h) : t) -> (s, d : h) : t) (lsplits ds)
+    lsplits (RawDirective d : ds) = (\case ((_, h) : t) -> ("", d : h) : t; _ -> undefined) $ lsplits ds
+    lsplits (LabelledDirective s d : ds) = ("", []) : (\case ((_, h) : t) -> (s, d : h) : t; _ -> undefined) (lsplits ds)
 
 instance Show LDirective where
   show (LabelledDirective l d) = l ++ ": " ++ show d
