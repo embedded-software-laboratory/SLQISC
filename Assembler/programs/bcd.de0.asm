@@ -1,27 +1,5 @@
 SECTION main[@0]
 entry:
-  MOV vy vd
-  MUL vy vd
-  MOV vz vx
-  INC vz
-  vy vz prime
-  MOV vy vx
-  MOD vy vd
-  SUB vz vz
-  SUB vz vy
-  SUB vy vy
-  vz vy nonprime
-  INC vd
-  JMP entry
-prime:
-  CALL bcdout
-nonprime:
-  INC vx
-  MOV vd #2
-  JMP entry
-
-SECTION funcs
-bcdout:
   MOV $0 vx
   DIV $0 #1000
   MOV $1 vx
@@ -51,13 +29,8 @@ bcdout:
   MUL $0 #16
   ADD $0 $3
   SUB $O $0
-  RET
-
-SECTION SP[@16381]
-  16128
+sl:
+  JMP sl
 
 SECTION vars
-  vx: 2
-  vd: 2
-  vy: 0
-  vz: 0
+  vx: 2187
