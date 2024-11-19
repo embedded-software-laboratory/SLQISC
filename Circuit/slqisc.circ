@@ -144,6 +144,40 @@
     <a name="circuit" val="main"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
+    <boardmap boardname="TERASIC_DE0">
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc key="/LED_1" map="301,331"/>
+      <mc key="/LED_10" map="321,331"/>
+      <mc key="/LED_11" map="341,331"/>
+      <mc key="/LED_12" map="362,331"/>
+      <mc key="/LED_13" map="382,331"/>
+      <mc key="/LED_14" map="402,331"/>
+      <mc key="/LED_15" map="422,331"/>
+      <mc key="/LED_16" map="442,331"/>
+      <mc key="/LED_2" map="462,331"/>
+      <mc key="/LED_3" map="482,331"/>
+    </boardmap>
     <comp lib="0" loc="(1050,520)" name="Splitter">
       <a name="bit1" val="0"/>
       <a name="bit10" val="none"/>
@@ -701,6 +735,7 @@ e8c631 2294bf ead6ac fa5208 8ad6be 1f21083 5c00 208436
 7c45
 </a>
       <a name="dataWidth" val="25"/>
+      <a name="label" val="ROM_1"/>
     </comp>
     <comp lib="4" loc="(1380,340)" name="Register">
       <a name="appearance" val="logisim_evolution"/>
@@ -786,6 +821,7 @@ e8c631 2294bf ead6ac fa5208 8ad6be 1f21083 5c00 208436
       <a name="addrWidth" val="16"/>
       <a name="appearance" val="logisim_evolution"/>
       <a name="dataWidth" val="16"/>
+      <a name="label" val="RAM_1"/>
       <a name="type" val="nonvolatile"/>
     </comp>
     <comp lib="4" loc="(820,240)" name="Register">
@@ -819,100 +855,132 @@ e8c631 2294bf ead6ac fa5208 8ad6be 1f21083 5c00 208436
       <a name="width" val="16"/>
     </comp>
     <comp lib="5" loc="(1460,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_1"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(1480,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_1"/>
     </comp>
     <comp lib="5" loc="(1520,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_2"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(1540,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_2"/>
     </comp>
     <comp lib="5" loc="(1580,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_3"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(1600,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_3"/>
     </comp>
     <comp lib="5" loc="(1640,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_4"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(1660,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_4"/>
     </comp>
     <comp lib="5" loc="(1700,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_5"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(1720,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_5"/>
     </comp>
     <comp lib="5" loc="(1760,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_6"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(1780,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_6"/>
     </comp>
     <comp lib="5" loc="(1820,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_7"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(1840,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_7"/>
     </comp>
     <comp lib="5" loc="(1880,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_8"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(1900,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_8"/>
     </comp>
     <comp lib="5" loc="(1940,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_9"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(1960,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_9"/>
     </comp>
     <comp lib="5" loc="(2000,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_10"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(2020,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_10"/>
     </comp>
     <comp lib="5" loc="(2060,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_11"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(2080,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_11"/>
     </comp>
     <comp lib="5" loc="(2120,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_12"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(2140,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_12"/>
     </comp>
     <comp lib="5" loc="(2180,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_13"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(2200,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_13"/>
     </comp>
     <comp lib="5" loc="(2240,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_14"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(2260,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_14"/>
     </comp>
     <comp lib="5" loc="(2300,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_15"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(2320,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_15"/>
     </comp>
     <comp lib="5" loc="(2360,260)" name="DotMatrix">
+      <a name="label" val="DotMatrix_16"/>
       <a name="matrixrows" val="5"/>
     </comp>
     <comp lib="5" loc="(2380,190)" name="LED">
       <a name="facing" val="north"/>
+      <a name="label" val="LED_16"/>
     </comp>
     <wire from="(1000,410)" to="(1040,410)"/>
     <wire from="(1020,200)" to="(1020,340)"/>

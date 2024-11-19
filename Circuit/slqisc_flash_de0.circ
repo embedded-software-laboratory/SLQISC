@@ -5,23 +5,31 @@
   <lib desc="#Wiring" name="0">
     <tool name="Splitter">
       <a name="bit1" val="0"/>
-      <a name="bit10" val="0"/>
-      <a name="bit11" val="0"/>
-      <a name="bit12" val="0"/>
-      <a name="bit13" val="0"/>
-      <a name="bit14" val="none"/>
-      <a name="bit15" val="none"/>
+      <a name="bit10" val="2"/>
+      <a name="bit11" val="2"/>
+      <a name="bit12" val="2"/>
+      <a name="bit13" val="2"/>
+      <a name="bit14" val="2"/>
+      <a name="bit15" val="3"/>
+      <a name="bit16" val="3"/>
+      <a name="bit17" val="3"/>
+      <a name="bit18" val="3"/>
+      <a name="bit19" val="3"/>
       <a name="bit2" val="0"/>
+      <a name="bit20" val="4"/>
+      <a name="bit21" val="4"/>
+      <a name="bit22" val="4"/>
+      <a name="bit23" val="4"/>
+      <a name="bit24" val="4"/>
       <a name="bit3" val="0"/>
       <a name="bit4" val="0"/>
-      <a name="bit5" val="0"/>
-      <a name="bit6" val="0"/>
-      <a name="bit7" val="0"/>
-      <a name="bit8" val="0"/>
-      <a name="bit9" val="0"/>
-      <a name="facing" val="south"/>
-      <a name="fanout" val="1"/>
-      <a name="incoming" val="16"/>
+      <a name="bit5" val="1"/>
+      <a name="bit6" val="1"/>
+      <a name="bit7" val="1"/>
+      <a name="bit8" val="1"/>
+      <a name="bit9" val="1"/>
+      <a name="fanout" val="5"/>
+      <a name="incoming" val="25"/>
     </tool>
     <tool name="Pin">
       <a name="appearance" val="classic"/>
@@ -32,8 +40,8 @@
       <a name="labelloc" val="east"/>
     </tool>
     <tool name="Constant">
-      <a name="value" val="0x7"/>
-      <a name="width" val="3"/>
+      <a name="value" val="0x12"/>
+      <a name="width" val="7"/>
     </tool>
     <tool name="Bit Extender">
       <a name="in_width" val="3"/>
@@ -339,25 +347,93 @@
       <a name="addrWidth" val="14"/>
       <a name="appearance" val="logisim_evolution"/>
       <a name="contents">addr/data: 14 16
-95 95 3 94 8f 6 8f 95
-9 8f 8f c 13 13 f 12
-12 14 0 0 94 8f 17 8f
-12 29 8f 8f 1d 90 12 20
-95 8f 23 8f 13 26 8f 8f
-17 95 95 2c 13 8f 2f 8f
-95 32 8f 8f 35 96 96 38
-93 8f 3b 8f 96 3e 8f 8f
-41 91 96 44 95 96 7a 95
-95 4a 93 8f 4d 8f 95 50
-8f 8f 53 91 95 56 94 95
-5c 8f 8f 56 94 8f 5f 8f
-95 62 8f 8f 65 90 95 68
-96 96 6b 95 96 6e 95 95
-71 96 95 7d 91 94 77 8f
-8f 0 93 ffff 7d 91 93 80
-94 94 83 92 8f 86 8f 94
-89 8f 8f 8c 8f 8f 0 0
-1 ffff 2 2 2
+ffef ffef 3 2b2 2a9 6 2a9 ffef
+9 2a9 2a9 c f f 10 0
+2aa ffef 13 2aa f 16 2ab ffef
+1c 2a9 2a9 13 ffef ffef 1f f
+2a9 22 2a9 ffef 25 2a9 2a9 28
+2ac ffef 2b ffee ffee 2e 2b2 2a9
+31 2a9 ffee 34 2a9 2a9 37 ffeb
+ffeb 3a ffef 2a9 3d 2a9 ffeb 40
+2a9 2a9 43 ffeb 2a9 46 2a9 ffeb
+49 2a9 2a9 4c ffeb 2a9 4f 2a9
+ffeb 52 2a9 2a9 55 ffeb 2a9 58
+2a9 ffeb 5b 2a9 2a9 5e 65 65
+61 64 64 66 0 0 2ad 2a9
+69 2a9 64 7b 2a9 2a9 6f 2ac
+64 72 ffeb 2a9 75 2a9 65 78
+2a9 2a9 69 ffeb ffeb 7e 65 2a9
+81 2a9 ffeb 84 2a9 2a9 87 ffeb
+ffee 8a 8d 8d 8e 0 2aa ffee
+91 2aa 8d 94 2ae ffee 9a 2a9
+2a9 91 ffee ffee 9d 8d 2a9 a0
+2a9 ffee a3 2a9 2a9 a6 2ac ffee
+a9 ffed ffed ac 2b2 2a9 af 2a9
+ffed b2 2a9 2a9 b5 ffeb ffeb b8
+ffef 2a9 bb 2a9 ffeb be 2a9 2a9
+c1 ffeb 2a9 c4 2a9 ffeb c7 2a9
+2a9 ca d1 d1 cd d0 d0 d2
+0 0 2af 2a9 d5 2a9 d0 e7
+2a9 2a9 db 2ac d0 de ffeb 2a9
+e1 2a9 d1 e4 2a9 2a9 d5 ffeb
+ffeb ea d1 2a9 ed 2a9 ffeb f0
+2a9 2a9 f3 ffee 2a9 f6 2a9 ffeb
+f9 2a9 2a9 fc ffeb 2a9 ff 2a9
+ffeb 102 2a9 2a9 105 ffeb 2a9 108
+2a9 ffeb 10b 2a9 2a9 10e 115 115
+111 114 114 116 0 0 2b0 2a9
+119 2a9 114 12b 2a9 2a9 11f 2ac
+114 122 ffeb 2a9 125 2a9 115 128
+2a9 2a9 119 ffeb ffeb 12e 115 2a9
+131 2a9 ffeb 134 2a9 2a9 137 ffeb
+ffed 13a 13d 13d 13e 0 2aa ffed
+141 2aa 13d 144 2b1 ffed 14a 2a9
+2a9 141 ffed ffed 14d 13d 2a9 150
+2a9 ffed 153 2a9 2a9 156 2ac ffed
+159 ffec ffec 15c 2b2 2a9 15f 2a9
+ffec 162 2a9 2a9 165 ffeb ffeb 168
+ffef 2a9 16b 2a9 ffeb 16e 2a9 2a9
+171 ffeb 2a9 174 2a9 ffeb 177 2a9
+2a9 17a 181 181 17d 180 180 182
+0 0 2af 2a9 185 2a9 180 197
+2a9 2a9 18b 2ac 180 18e ffeb 2a9
+191 2a9 181 194 2a9 2a9 185 ffeb
+ffeb 19a 181 2a9 19d 2a9 ffeb 1a0
+2a9 2a9 1a3 ffee 2a9 1a6 2a9 ffeb
+1a9 2a9 2a9 1ac ffeb 2a9 1af 2a9
+ffeb 1b2 2a9 2a9 1b5 1bc 1bc 1b8
+1bb 1bb 1bd 0 0 2af 2a9 1c0
+2a9 1bb 1d2 2a9 2a9 1c6 2ac 1bb
+1c9 ffeb 2a9 1cc 2a9 1bc 1cf 2a9
+2a9 1c0 ffeb ffeb 1d5 1bc 2a9 1d8
+2a9 ffeb 1db 2a9 2a9 1de ffed 2a9
+1e1 2a9 ffeb 1e4 2a9 2a9 1e7 ffeb
+2a9 1ea 2a9 ffeb 1ed 2a9 2a9 1f0
+1f7 1f7 1f3 1f6 1f6 1f8 0 0
+2af 2a9 1fb 2a9 1f6 20d 2a9 2a9
+201 2ac 1f6 204 ffeb 2a9 207 2a9
+1f7 20a 2a9 2a9 1fb ffeb ffeb 210
+1f7 2a9 213 2a9 ffeb 216 2a9 2a9
+219 ffeb ffec 21c ffef 2a9 21f 2a9
+ffef 222 2a9 2a9 225 ffef 2a9 228
+2a9 ffef 22b 2a9 2a9 22e ffef 2a9
+231 2a9 ffef 234 2a9 2a9 237 ffef
+2a9 23a 2a9 ffef 23d 2a9 2a9 240
+ffee 2a9 243 2a9 ffef 246 2a9 2a9
+249 ffef 2a9 24c 2a9 ffef 24f 2a9
+2a9 252 ffef 2a9 255 2a9 ffef 258
+2a9 2a9 25b ffef 2a9 25e 2a9 ffef
+261 2a9 2a9 264 ffef 2a9 267 2a9
+ffef 26a 2a9 2a9 26d ffed 2a9 270
+2a9 ffef 273 2a9 2a9 276 ffef 2a9
+279 2a9 ffef 27c 2a9 2a9 27f ffef
+2a9 282 2a9 ffef 285 2a9 2a9 288
+ffef 2a9 28b 2a9 ffef 28e 2a9 2a9
+291 ffef 2a9 294 2a9 ffef 297 2a9
+2a9 29a ffec 2a9 29d 2a9 ffef 2a0
+2a9 2a9 2a3 ffef ffff 2a6 2a9 2a9
+2a6 0 ffff 3e8 1 7d 64 5
+19 a 88b
 </a>
       <a name="dataWidth" val="16"/>
       <a name="label" val="ROM_1"/>
