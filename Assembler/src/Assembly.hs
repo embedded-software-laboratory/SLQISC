@@ -9,6 +9,7 @@ module Assembly
     implem,
     sectionSize,
     labelPreservingMap,
+    nobranch,
   )
 where
 
