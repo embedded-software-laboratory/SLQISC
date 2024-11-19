@@ -14,7 +14,7 @@ import Assembly
   )
 import Data.List (elemIndex, findIndex, nub, sortOn)
 import Data.Maybe
-import Optimizer (postOptimize, preOptimize)
+import Optimizer (debugPostOptimize, postOptimize, preOptimize)
 import System.IO
 import Text.Printf
 
@@ -151,40 +151,40 @@ resolveMacros :: Assembly -> Assembly
 resolveMacros = map (\s -> s {directives = zip [0 :: Int ..] (directives s) >>= (\(i, d) -> resolveMacrosD ("_" ++ sName s ++ show i) d)})
 
 assemble :: Assembly -> [Int]
-assemble = toInts . postOptimize . resolveLabels . squash . padSections . placeSections . constSection . resolveMacros . preOptimize
+assemble = postOptimize . toInts . resolveLabels . squash . padSections . placeSections . constSection . resolveMacros . preOptimize
 
 debugAssemble :: String -> Assembly -> IO [Int]
 debugAssemble f a = withFile f WriteMode $ \h -> do
-  putStrLn "Input: "
+  hPutStrLn h "Input: "
   hPrint h a
   let preOpt = preOptimize a
-  putStrLn "Pre-Optimized: "
+  hPutStrLn h "Pre-Optimized: "
   hPrint h preOpt
   let demacro = resolveMacros preOpt
-  putStrLn "Demacro: "
+  hPutStrLn h "Demacro: "
   hPrint h demacro
   let constS = constSection demacro
-  putStrLn "Const section: "
+  hPutStrLn h "Const section: "
   hPrint h constS
   let placed = placeSections constS
-  putStrLn "Placed: "
+  hPutStrLn h "Placed: "
   hPrint h placed
   let padded = padSections placed
-  putStrLn "Padded: "
+  hPutStrLn h "Padded: "
   hPrint h padded
   let squashed = squash padded
-  putStrLn "Squashed: "
+  hPutStrLn h "Squashed: "
   hPrint h squashed
   let resolved = resolveLabels squashed
-  putStrLn "Resolved Labels: "
+  hPutStrLn h "Resolved Labels: "
   hPrint h resolved
-  let postOptimized = postOptimize resolved
-  putStrLn "Post-Optimized: "
-  hPrint h postOptimized
-  let assembled = toInts postOptimized
-  putStrLn "Assembled: "
+  let assembled = toInts resolved
+  hPutStrLn h "Assembled: "
   hPrint h assembled
-  return assembled
+  postOptimized <- debugPostOptimize assembled
+  hPutStrLn h "Post-Optimized: "
+  hPrint h postOptimized
+  return postOptimized
 
 output :: String -> [Int] -> IO ()
 output f dat = withFile f WriteMode $ \h -> do
