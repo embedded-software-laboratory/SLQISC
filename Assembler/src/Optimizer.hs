@@ -2,6 +2,7 @@ module Optimizer (preOptimize, postOptimize, debugPostOptimize) where
 
 import Assembly
 import Data.List (intercalate, nub, (\\))
+import Data.Map.Strict qualified as M
 import Data.Maybe
 
 mul2 :: Directive -> [Directive]
@@ -34,12 +35,17 @@ optimizeMacros ls = ls >>= singleReplacements
 preOptimize :: Assembly -> Assembly
 preOptimize = map (\s -> s {directives = labelPreservingMap optimizeMacros (directives s)})
 
-data CFA = CFA [Int] [(Int, (Int, Int, Int), Int)]
+data Edge = Edge {source :: Int, label :: (Int, Int, Int), target :: Int} deriving (Eq, Ord)
+
+instance Show Edge where
+  show (Edge a (b, c, _) s) = show a ++ " -> " ++ show s ++ " [label=\"" ++ dotLabel a b c s ++ "\"]\n"
+
+data CFA = CFA [Int] [Edge]
 
 newtype BBCFA = BBCFA [(Int, [(Int, Int)], Int)]
 
-label :: Int -> Int -> Int -> Int -> String
-label a b c s
+dotLabel :: Int -> Int -> Int -> Int -> String
+dotLabel a b c s
   | a + 3 == s && c /= b = "$" ++ show c ++ " -= $" ++ show b
   | a + 3 == s = "$" ++ show c ++ " = 0"
   | c /= b = "$" ++ show c ++ " -= $" ++ show b ++ " [JMP]"
@@ -54,30 +60,50 @@ bblabel :: Int -> [(Int, Int)] -> Int -> String
 bblabel _ bb _ = intercalate "\\n" $ map (uncurry njlabel) bb
 
 instance Show CFA where
-  show (CFA _ e) = "digraph G {" ++ concatMap (\(a, (b, c, _), s) -> show a ++ " -> " ++ show s ++ " [label=\"" ++ label a b c s ++ "\"]\n") e ++ "}"
+  show (CFA _ e) = "digraph G {" ++ concatMap show e ++ "}"
 
 instance Show BBCFA where
   show (BBCFA e) =
     "digraph G {"
       ++ concatMap
         ( \case
-            (a, [], s) -> show a ++ " -> " ++ show s
+            (a, [], s) -> show a ++ " -> " ++ show s ++ "\n"
             (a, bb, s) -> "v" ++ show a ++ "_" ++ show s ++ "[shape=rect,label=\"" ++ bblabel a bb s ++ "\"]\n" ++ show a ++ " -> " ++ "v" ++ show a ++ "_" ++ show s ++ "\n" ++ "v" ++ show a ++ "_" ++ show s ++ " -> " ++ show s ++ "\n"
         )
         e
       ++ "}"
 
-basicBlock' :: [(Int, [(Int, Int)], Int)] -> [(Int, [(Int, Int)], Int)]
-basicBlock' [] = []
-basicBlock' ((a, bb, s) : xs) =
-  let succs = filter (\(a', _, _) -> a' == s) xs
-   in case succs of
-        [scc@(a', bb', s')] | not $ any (\(_, _, s'') -> a' == s'') xs -> basicBlock' ((a, bb ++ bb', s') : (xs \\ [scc]))
-        [] -> (a, bb, s) : (s, [], a) : basicBlock' xs
-        _ -> (a, bb, s) : basicBlock' xs
+bbStep' :: CFA -> Int -> M.Map Int [Int] -> M.Map Int [Int]
+bbStep' (CFA _ e) v blocks =
+  if not (v `M.member` blocks)
+    then blocks
+    else
+      let exit = last (blocks M.! v)
+          succs = filter (\edge -> source edge == exit) e
+       in if length succs /= 1
+            then blocks
+            else
+              let edge = head succs
+               in if length (filter (\edge' -> target edge' == target edge) e) /= 1
+                    then blocks
+                    else
+                      M.adjust (++ (blocks M.! target edge)) v $ M.delete (target edge) blocks
+
+bbStep :: CFA -> M.Map Int [Int] -> M.Map Int [Int]
+bbStep cfa@(CFA v e) blocks =
+  let folded = foldl (flip (bbStep' cfa)) blocks v
+   in if blocks == folded then blocks else bbStep (CFA v e) folded
+
+buildBlocks :: CFA -> [[Int]] -> BBCFA
+buildBlocks (CFA _ e) blocks =
+  let blockEdges = map (\b -> (head b, zipWith (\epred esucc -> (\(ra, rb, _) -> (ra, rb)) $ label $ head $ filter (\edge -> source edge == epred && target edge == esucc) e) b (tail b), last b)) blocks
+      tweenEdges = map (\edge -> (source edge, [(\(a, b, _) -> (a, b)) $ label edge], target edge)) $ filter (\edge -> source edge `elem` map last blocks) e
+   in BBCFA (blockEdges ++ tweenEdges)
 
 basicBlock :: CFA -> BBCFA
-basicBlock (CFA _ e) = BBCFA $ basicBlock' $ map (\(pre, (a, b, _), post) -> (pre, [(a, b)], post)) e
+basicBlock (CFA v e) =
+  let iblocks = M.fromList $ map (\vx -> (vx, [vx])) v
+   in buildBlocks (CFA v e) $ M.elems $ bbStep (CFA v e) iblocks
 
 cfaStep :: (Int -> (Int, Int, Int)) -> ([Int], CFA) -> ([Int], CFA)
 cfaStep _ ([], CFA v e) = ([], CFA v e)
@@ -85,7 +111,7 @@ cfaStep prog (n : open, CFA v e) =
   let (a, b, c) = prog n
       succs = if a /= b then nub [n + 3, c] else [c]
       openSuccs = (succs \\ (n : open)) \\ v
-   in cfaStep prog (openSuccs ++ open, CFA (v ++ [n]) (e ++ [(n, (a, b, c), s) | s <- succs]))
+   in cfaStep prog (openSuccs ++ open, CFA (v ++ [n]) (e ++ [Edge n (a, b, c) s | s <- succs]))
 
 (!?) :: [a] -> Int -> Maybe a
 [] !? _ = Nothing
@@ -100,7 +126,7 @@ buildCFA xs =
 debugPostOptimize :: [Int] -> IO [Int]
 debugPostOptimize xs = do
   let cfa = buildCFA xs
-  print cfa
+  print $ basicBlock cfa
   return xs
 
 postOptimize :: [Int] -> [Int]

@@ -37,9 +37,11 @@ library
       src
   default-extensions:
       LambdaCase
+      ImportQualifiedPost
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , containers
     , megaparsec
   default-language: Haskell2010
 
@@ -53,10 +55,12 @@ executable SubleqAssembler-exe
       app
   default-extensions:
       LambdaCase
+      ImportQualifiedPost
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       SubleqAssembler
     , base >=4.7 && <5
+    , containers
     , megaparsec
   default-language: Haskell2010
 
@@ -71,9 +75,11 @@ test-suite SubleqAssembler-test
       test
   default-extensions:
       LambdaCase
+      ImportQualifiedPost
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       SubleqAssembler
     , base >=4.7 && <5
+    , containers
     , megaparsec
   default-language: Haskell2010

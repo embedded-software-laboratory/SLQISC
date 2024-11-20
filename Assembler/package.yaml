@@ -22,6 +22,7 @@ description: Please see the README on GitHub at <https://github.com/embedded-sof
 dependencies:
   - base >= 4.7 && < 5
   - megaparsec
+  - containers
 
 ghc-options:
   - -Wall
@@ -36,6 +37,7 @@ ghc-options:
 
 default-extensions:
   - LambdaCase
+  - ImportQualifiedPost
 
 library:
   source-dirs: src
