@@ -64,7 +64,7 @@ instance Show CFA where
 
 instance Show BBCFA where
   show (BBCFA e) =
-    "digraph G {"
+    "digraph G {0[label=\"0\"]\n"
       ++ concatMap
         ( \case
             (a, [], s) -> show a ++ " -> " ++ show s ++ "\n"
