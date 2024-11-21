@@ -42,7 +42,7 @@ instance Show Edge where
 
 data CFA = CFA [Int] [Edge]
 
-newtype BBCFA = BBCFA [(Int, [(Int, Int)], Int)]
+newtype BBCFA = BBCFA {basicBlocks :: [(Int, [(Int, Int)], Int)]}
 
 dotLabel :: Int -> Int -> Int -> Int -> String
 dotLabel a b c s
@@ -94,11 +94,25 @@ bbStep cfa@(CFA v e) blocks =
   let folded = foldl (flip (bbStep' cfa)) blocks v
    in if blocks == folded then blocks else bbStep (CFA v e) folded
 
+outgoing :: [Edge] -> Int -> [Edge]
+outgoing e v = filter (\edge -> source edge == v) e
+
+blockEdge :: [Edge] -> [Int] -> (Int, [(Int, Int)], Int)
+blockEdge e b =
+  let esource = head b
+      post = outgoing e (last b)
+      elabel = zipWith (\epred esucc -> (\(ra, rb, _) -> (ra, rb)) $ label $ head $ filter (\edge -> source edge == epred && target edge == esucc) e) b (tail b) ++ case post of [Edge _ (x, y, _) _] -> [(x, y)]; _ -> []
+      etarget = case post of [Edge _ _ t] -> t; _ -> last b
+   in (esource, elabel, etarget)
+
+isSource :: [(Int, [(Int, Int)], Int)] -> Int -> Bool
+isSource edges v = not $ any (\(_, _, t) -> t == v) edges
+
 buildBlocks :: CFA -> [[Int]] -> BBCFA
 buildBlocks (CFA _ e) blocks =
-  let blockEdges = map (\b -> (head b, zipWith (\epred esucc -> (\(ra, rb, _) -> (ra, rb)) $ label $ head $ filter (\edge -> source edge == epred && target edge == esucc) e) b (tail b), last b)) blocks
+  let blockEdges = map (blockEdge e) $ filter (\b -> length b > 1) blocks
       tweenEdges = map (\edge -> (source edge, [(\(a, b, _) -> (a, b)) $ label edge], target edge)) $ filter (\edge -> source edge `elem` map last blocks) e
-   in BBCFA (blockEdges ++ tweenEdges)
+   in BBCFA $ (\es -> filter (\(v, _, _) -> v == 0 || not (isSource es v)) es) (blockEdges ++ tweenEdges)
 
 basicBlock :: CFA -> BBCFA
 basicBlock (CFA v e) =
@@ -125,9 +139,16 @@ buildCFA xs =
 
 debugPostOptimize :: [Int] -> IO [Int]
 debugPostOptimize xs = do
-  let cfa = buildCFA xs
+  let cfa@(CFA v _) = buildCFA xs
   print $ basicBlock cfa
   return xs
 
+blockOptimize :: [(Int, Int)] -> ([(Int, Int)], Int -> Int)
+blockOptimize x = (x, id)
+
 postOptimize :: [Int] -> [Int]
-postOptimize = id
+postOptimize xs =
+  let cfa = buildCFA xs
+      bb = basicBlock cfa
+      (intraBB, rep) = bb {basicBlocks = map (\(a, bb, s) -> (a, blockOptimize bb, s))}
+   in xs
