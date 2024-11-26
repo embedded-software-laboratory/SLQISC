@@ -68,6 +68,7 @@ macro =
     <|> macroBin "JLEQ" MJLeq
     <|> macroUn "INC" MInc
     <|> macroUn "DEC" MDec
+    <|> macroUn "IN" MIn
     <|> macroUn "OUT" MOut
     <|> macroUn "DOUT" MDOut
     <|> macroUn "PRNT" MPrint

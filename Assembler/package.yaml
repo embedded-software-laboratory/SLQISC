@@ -38,6 +38,7 @@ ghc-options:
 default-extensions:
   - LambdaCase
   - ImportQualifiedPost
+  - FlexibleInstances
 
 library:
   source-dirs: src

@@ -4,6 +4,7 @@ import Assembly
 import Data.List (intercalate, nub, (\\))
 import Data.Map.Strict qualified as M
 import Data.Maybe
+import Simulator
 
 mul2 :: Directive -> [Directive]
 mul2 x = [DMacro (MAdd x x)]
@@ -139,16 +140,28 @@ buildCFA xs =
 
 debugPostOptimize :: [Int] -> IO [Int]
 debugPostOptimize xs = do
-  let cfa@(CFA v _) = buildCFA xs
-  print $ basicBlock cfa
+  let cfa = buildCFA xs
+  let bbcfa = basicBlock cfa
+  print bbcfa
+  putStr "Reads: "
+  print (staticReads bbcfa)
+  putStr "Writes: "
+  print (staticWrites bbcfa)
+  putStr "Values: "
+  print (progFix xs :: ProgramState Const)
   return xs
 
 blockOptimize :: [(Int, Int)] -> ([(Int, Int)], Int -> Int)
 blockOptimize x = (x, id)
 
+staticWrites :: BBCFA -> [Int]
+staticWrites (BBCFA e) = nub (e >>= (\(_, ll, _) -> map snd ll))
+
+staticReads :: BBCFA -> [Int]
+staticReads (BBCFA e) = nub (e >>= (\(_, ll, _) -> ll >>= (\(a, b) -> [a, b])))
+
 postOptimize :: [Int] -> [Int]
 postOptimize xs =
   let cfa = buildCFA xs
       bb = basicBlock cfa
-      (intraBB, rep) = bb {basicBlocks = map (\(a, bb, s) -> (a, blockOptimize bb, s))}
    in xs

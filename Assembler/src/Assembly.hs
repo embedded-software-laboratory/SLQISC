@@ -42,6 +42,7 @@ data Macro
   | MJLeq Directive Directive
   | MInc Directive
   | MDec Directive
+  | MIn Directive
   | MOut Directive
   | MPrint Directive
   | MDOut Directive
@@ -131,6 +132,15 @@ implem _ (MJmp a) = [DImm 0, DImm 0, a]
 implem _ (MJLeq a t) = [DImm 0, a, t]
 implem pc (MInc a) = implem pc (MSub a (DImm (-1)))
 implem pc (MDec a) = implem pc (MSub a (DImm 1))
+implem pc (MIn a) = 
+  nobranch a a
+  ++ nobranch (DImm (-1)) a
+  ++ [DReg RIn, a, pc]
+  ++ nobranch (DImm 1) a
+  ++ nobranch (DReg RIn) (DReg RIn)
+  ++ nobranch (DImm (-1)) (DReg RIn)
+
+
 implem pc (MOut a) = implem pc (MSub (DReg ROut) a)
 implem pc (MDOut a) =
   let c = DImm (charValue '0')
@@ -193,6 +203,7 @@ instance Show Macro where
   show (MJLeq a l) = "JLEQ " ++ show a ++ ", " ++ show l
   show (MInc a) = "INC " ++ show a
   show (MDec a) = "DEC " ++ show a
+  show (MIn a) = "IN " ++ show a
   show (MOut a) = "OUT " ++ show a
   show (MDOut a) = "DOUT " ++ show a
   show (MPrint a) = "PRNT " ++ show a
