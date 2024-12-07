@@ -149,11 +149,10 @@
     <a name="appearance" val="logisim_evolution"/>
     <a name="circuit" val="main"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
-    <a name="downloadBoard" val="TERASIC_DE0"/>
-    <a name="downloadFrequency" val="4000.0"/>
+    <a name="downloadBoard" val="TERASIC_DE10_LITE"/>
+    <a name="downloadFrequency" val="1041666.6666666666"/>
     <a name="simulationFrequency" val="1.0"/>
     <boardmap boardname="TERASIC_DE0">
-      <mc/>
       <mc key="/Hex_Digit_Display_1" map="168,306"/>
       <mc key="/Hex_Digit_Display_2" map="198,306"/>
       <mc key="/Hex_Digit_Display_3" map="227,306"/>
@@ -167,6 +166,21 @@
       <mc key="/LED_7" map="422,331"/>
       <mc key="/LED_8" map="442,331"/>
       <mc key="/RESET" map="484,370"/>
+    </boardmap>
+    <boardmap boardname="TERASIC_DE10_LITE">
+      <mc key="/Hex_Digit_Display_1" map="137,325"/>
+      <mc key="/Hex_Digit_Display_2" map="191,325"/>
+      <mc key="/Hex_Digit_Display_3" map="245,325"/>
+      <mc key="/Hex_Digit_Display_4" map="300,325"/>
+      <mc key="/LED_1" pmap="355_325_0"/>
+      <mc key="/LED_2" pmap="355_325_1"/>
+      <mc key="/LED_3" pmap="355_325_2"/>
+      <mc key="/LED_4" pmap="355_325_3"/>
+      <mc key="/LED_5" pmap="355_325_4"/>
+      <mc key="/LED_6" pmap="355_325_5"/>
+      <mc key="/LED_7" pmap="355_325_6"/>
+      <mc key="/LED_8" pmap="355_325_7"/>
+      <mc key="/RESET" map="630,281"/>
     </boardmap>
     <comp lib="0" loc="(1150,340)" name="Constant">
       <a name="value" val="0xffff"/>
@@ -347,93 +361,24 @@
       <a name="addrWidth" val="14"/>
       <a name="appearance" val="logisim_evolution"/>
       <a name="contents">addr/data: 14 16
-ffef ffef 3 2b2 2a9 6 2a9 ffef
-9 2a9 2a9 c f f 10 0
-2aa ffef 13 2aa f 16 2ab ffef
-1c 2a9 2a9 13 ffef ffef 1f f
-2a9 22 2a9 ffef 25 2a9 2a9 28
-2ac ffef 2b ffee ffee 2e 2b2 2a9
-31 2a9 ffee 34 2a9 2a9 37 ffeb
-ffeb 3a ffef 2a9 3d 2a9 ffeb 40
-2a9 2a9 43 ffeb 2a9 46 2a9 ffeb
-49 2a9 2a9 4c ffeb 2a9 4f 2a9
-ffeb 52 2a9 2a9 55 ffeb 2a9 58
-2a9 ffeb 5b 2a9 2a9 5e 65 65
-61 64 64 66 0 0 2ad 2a9
-69 2a9 64 7b 2a9 2a9 6f 2ac
-64 72 ffeb 2a9 75 2a9 65 78
-2a9 2a9 69 ffeb ffeb 7e 65 2a9
-81 2a9 ffeb 84 2a9 2a9 87 ffeb
-ffee 8a 8d 8d 8e 0 2aa ffee
-91 2aa 8d 94 2ae ffee 9a 2a9
-2a9 91 ffee ffee 9d 8d 2a9 a0
-2a9 ffee a3 2a9 2a9 a6 2ac ffee
-a9 ffed ffed ac 2b2 2a9 af 2a9
-ffed b2 2a9 2a9 b5 ffeb ffeb b8
-ffef 2a9 bb 2a9 ffeb be 2a9 2a9
-c1 ffeb 2a9 c4 2a9 ffeb c7 2a9
-2a9 ca d1 d1 cd d0 d0 d2
-0 0 2af 2a9 d5 2a9 d0 e7
-2a9 2a9 db 2ac d0 de ffeb 2a9
-e1 2a9 d1 e4 2a9 2a9 d5 ffeb
-ffeb ea d1 2a9 ed 2a9 ffeb f0
-2a9 2a9 f3 ffee 2a9 f6 2a9 ffeb
-f9 2a9 2a9 fc ffeb 2a9 ff 2a9
-ffeb 102 2a9 2a9 105 ffeb 2a9 108
-2a9 ffeb 10b 2a9 2a9 10e 115 115
-111 114 114 116 0 0 2b0 2a9
-119 2a9 114 12b 2a9 2a9 11f 2ac
-114 122 ffeb 2a9 125 2a9 115 128
-2a9 2a9 119 ffeb ffeb 12e 115 2a9
-131 2a9 ffeb 134 2a9 2a9 137 ffeb
-ffed 13a 13d 13d 13e 0 2aa ffed
-141 2aa 13d 144 2b1 ffed 14a 2a9
-2a9 141 ffed ffed 14d 13d 2a9 150
-2a9 ffed 153 2a9 2a9 156 2ac ffed
-159 ffec ffec 15c 2b2 2a9 15f 2a9
-ffec 162 2a9 2a9 165 ffeb ffeb 168
-ffef 2a9 16b 2a9 ffeb 16e 2a9 2a9
-171 ffeb 2a9 174 2a9 ffeb 177 2a9
-2a9 17a 181 181 17d 180 180 182
-0 0 2af 2a9 185 2a9 180 197
-2a9 2a9 18b 2ac 180 18e ffeb 2a9
-191 2a9 181 194 2a9 2a9 185 ffeb
-ffeb 19a 181 2a9 19d 2a9 ffeb 1a0
-2a9 2a9 1a3 ffee 2a9 1a6 2a9 ffeb
-1a9 2a9 2a9 1ac ffeb 2a9 1af 2a9
-ffeb 1b2 2a9 2a9 1b5 1bc 1bc 1b8
-1bb 1bb 1bd 0 0 2af 2a9 1c0
-2a9 1bb 1d2 2a9 2a9 1c6 2ac 1bb
-1c9 ffeb 2a9 1cc 2a9 1bc 1cf 2a9
-2a9 1c0 ffeb ffeb 1d5 1bc 2a9 1d8
-2a9 ffeb 1db 2a9 2a9 1de ffed 2a9
-1e1 2a9 ffeb 1e4 2a9 2a9 1e7 ffeb
-2a9 1ea 2a9 ffeb 1ed 2a9 2a9 1f0
-1f7 1f7 1f3 1f6 1f6 1f8 0 0
-2af 2a9 1fb 2a9 1f6 20d 2a9 2a9
-201 2ac 1f6 204 ffeb 2a9 207 2a9
-1f7 20a 2a9 2a9 1fb ffeb ffeb 210
-1f7 2a9 213 2a9 ffeb 216 2a9 2a9
-219 ffeb ffec 21c ffef 2a9 21f 2a9
-ffef 222 2a9 2a9 225 ffef 2a9 228
-2a9 ffef 22b 2a9 2a9 22e ffef 2a9
-231 2a9 ffef 234 2a9 2a9 237 ffef
-2a9 23a 2a9 ffef 23d 2a9 2a9 240
-ffee 2a9 243 2a9 ffef 246 2a9 2a9
-249 ffef 2a9 24c 2a9 ffef 24f 2a9
-2a9 252 ffef 2a9 255 2a9 ffef 258
-2a9 2a9 25b ffef 2a9 25e 2a9 ffef
-261 2a9 2a9 264 ffef 2a9 267 2a9
-ffef 26a 2a9 2a9 26d ffed 2a9 270
-2a9 ffef 273 2a9 2a9 276 ffef 2a9
-279 2a9 ffef 27c 2a9 2a9 27f ffef
-2a9 282 2a9 ffef 285 2a9 2a9 288
-ffef 2a9 28b 2a9 ffef 28e 2a9 2a9
-291 ffef 2a9 294 2a9 ffef 297 2a9
-2a9 29a ffec 2a9 29d 2a9 ffef 2a0
-2a9 2a9 2a3 ffef ffff 2a6 2a9 2a9
-2a6 0 ffff 3e8 1 7d 64 5
-19 a 88b
+8f 8f 3 8e 89 6 89 8f
+9 89 89 c 13 13 f 12
+12 14 0 0 8e 89 17 89
+12 29 89 89 1d 8a 12 20
+8f 89 23 89 13 26 89 89
+17 8f 8f 2c 13 89 2f 89
+8f 32 89 89 35 90 90 38
+8d 89 3b 89 90 3e 89 89
+41 8b 90 44 8f 90 7a 8f
+8f 4a 8d 89 4d 89 8f 50
+89 89 53 8b 8f 56 8e 8f
+5c 89 89 56 8e 89 5f 89
+8f 62 89 89 65 8a 8f 68
+90 90 6b 8f 90 6e 8f 8f
+71 90 8f 7d 8b 8e 77 89
+89 0 8d ffff 7d 8b 8d 80
+8e 8e 83 8c 8e 86 89 89
+0 0 1 ffff fffe 2 2
 </a>
       <a name="dataWidth" val="16"/>
       <a name="label" val="ROM_1"/>
