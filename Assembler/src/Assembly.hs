@@ -50,6 +50,9 @@ data Macro
   | MCall Directive
   | MRet
 
+cur :: Directive
+cur = DCur
+
 implem :: Directive -> Macro -> [Directive]
 implem _ (MSLQ a b c) = [a, b, c]
 implem pc (MMov a b) = nobranch a a ++ implem (pc + 3) (MAdd a b)
@@ -71,13 +74,13 @@ implem pc (MSTI a b) =
         ++ nobranch p2 p2
 implem _ (MLDI a b) =
   nobranch b (DImm 0)
-    ++ nobranch (DImm 0) (DCur + 8)
+    ++ nobranch (DImm 0) (cur + 8)
     ++ nobranch (DImm 0) (DImm 0)
     ++ nobranch a a
     ++ nobranch (DNumber 0) (DImm 0)
     ++ nobranch (DImm 0) a
     ++ nobranch (DImm 0) (DImm 0)
-    ++ nobranch (DCur - 9) (DCur - 10)
+    ++ nobranch (cur - 9) (cur - 10)
 implem pc (MPush a) =
   let p = implem pc (MSTI (DReg RSP) a)
    in p ++ implem (pc + fromIntegral (length p)) (MDec (DReg RSP))
@@ -85,33 +88,33 @@ implem pc (MPop a) = implem pc (MInc (DReg RSP)) ++ implem (pc + 3) (MLDI a (DRe
 implem _ (MAdd a b) = nobranch b (DImm 0) ++ nobranch (DImm 0) a ++ nobranch (DImm 0) (DImm 0)
 implem _ (MSub a b) = nobranch b a
 implem _ (MMul a b) =
-  [DCur + 7, DCur + 6, DCur + 1, DCur + 3, DCur + 2, DCur + 3, 0, 0]
+  [cur + 7, cur + 6, cur + 1, cur + 3, cur + 2, cur + 3, 0, 0]
     ++ nobranch b (DImm 0)
-    ++ [DImm 0, DDiff DCur (DNumber 6), DSum DCur (DNumber 16)]
+    ++ [DImm 0, cur - 6, cur + 16]
     ++ nobranch (DImm 0) (DImm 0)
-    ++ nobranch (DImm 1) (DDiff DCur (DNumber 12))
+    ++ nobranch (DImm 1) (cur - 12)
     ++ nobranch a (DImm 0)
-    ++ nobranch (DImm 0) (DDiff DCur (DNumber 17))
-    ++ [DImm 0, DImm 0, DDiff DCur (DNumber 17)]
+    ++ nobranch (DImm 0) (cur - 17)
+    ++ [DImm 0, DImm 0, cur - 17]
     ++ nobranch a a
-    ++ nobranch (DDiff DCur (DNumber 25)) (DImm 0)
+    ++ nobranch (cur - 25) (DImm 0)
     ++ nobranch (DImm 0) a
     ++ nobranch (DImm 0) (DImm 0)
 implem _ (MDiv a b) =
-  [DSum DCur (DNumber 3), DSum DCur (DNumber 2), DSum DCur (DNumber 2), DNumber 0]
+  [cur + 3, cur + 2, cur + 2, 0]
     ++ nobranch (DImm (-1)) a
-    ++ nobranch (DImm (-1)) (DCur - 5)
-    ++ [b, a, DCur + 4]
-    ++ [DImm 0, DImm 0, DCur - 8]
+    ++ nobranch (DImm (-1)) (cur - 5)
+    ++ [b, a, cur + 4]
+    ++ [DImm 0, DImm 0, cur - 8]
     ++ nobranch a a
-    ++ nobranch (DCur - 16) (DImm 0)
+    ++ nobranch (cur - 16) (DImm 0)
     ++ nobranch (DImm 0) a
     ++ nobranch (DImm 0) (DImm 0)
     ++ nobranch (DImm 1) a
 implem pc (MMod a b) =
   nobranch (DImm (-1)) a
-    ++ [b, a, DCur + 4]
-    ++ [DImm 0, DImm 0, DCur - 5]
+    ++ [b, a, cur + 4]
+    ++ [DImm 0, DImm 0, cur - 5]
     ++ implem (pc + 9) (MAdd a b)
     ++ nobranch (DImm 1) a
 implem pc (MNeg a) =
@@ -126,21 +129,19 @@ implem pc (MNot a) =
     ++ nobranch (DImm (-1)) (DImm 1)
 implem pc (MOr a b) =
   implem pc (MAdd a b)
-    ++ [DImm 0, a, DCur + 4]
+    ++ [DImm 0, a, cur + 4]
     ++ implem (pc + 12) (MMov a (DImm 1))
 implem _ (MJmp a) = [DImm 0, DImm 0, a]
 implem _ (MJLeq a t) = [DImm 0, a, t]
 implem pc (MInc a) = implem pc (MSub a (DImm (-1)))
 implem pc (MDec a) = implem pc (MSub a (DImm 1))
-implem pc (MIn a) = 
+implem pc (MIn a) =
   nobranch a a
-  ++ nobranch (DImm (-1)) a
-  ++ [DReg RIn, a, pc]
-  ++ nobranch (DImm 1) a
-  ++ nobranch (DReg RIn) (DReg RIn)
-  ++ nobranch (DImm (-1)) (DReg RIn)
-
-
+    ++ nobranch (DImm (-1)) a
+    ++ [DReg RIn, a, pc]
+    ++ nobranch (DImm 1) a
+    ++ nobranch (DReg RIn) (DReg RIn)
+    ++ nobranch (DImm (-1)) (DReg RIn)
 implem pc (MOut a) = implem pc (MSub (DReg ROut) a)
 implem pc (MDOut a) =
   let c = DImm (charValue '0')
@@ -150,7 +151,7 @@ implem pc (MDOut a) =
         ++ nobranch (DImm (-charValue '0')) c
 implem pc (MPrint a) =
   let x = pc + 3
-   in [DCur + 3, DCur + 2, DCur + 2, DNumber 0]
+   in [cur + 3, cur + 2, cur + 2, DNumber 0]
         ++ implemList
           (pc + 4)
           [ MMov x a,
@@ -175,7 +176,7 @@ implem pc (MPrint a) =
 implem _ (MString s) = map DChar s
 implem pc (MCall a) =
   let p = implem pc (MPush (pc + fromIntegral (3 + length p)))
-   in p ++ implem (pc + fromIntegral (length p)) (MJmp a) ++ [DCur + 1]
+   in p ++ implem (pc + fromIntegral (length p)) (MJmp a) ++ [cur + 1]
 implem pc MRet =
   let p = implem pc (MPop (pc + fromIntegral (2 + length p)))
    in p ++ [DImm 0, DImm 0, DNumber 0]
