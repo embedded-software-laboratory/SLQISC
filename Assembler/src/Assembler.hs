@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Assembler (assemble, debugAssemble, output) where
+module Assembler (assemble, debugAssemble, outputLogisim, outputVerilog) where
 
 import Assembly
   ( Assembly,
@@ -140,7 +140,7 @@ toInts :: [Directive] -> [Int]
 toInts = map toInt
 
 resolveMacrosD' :: Directive -> Directive -> [Directive]
-resolveMacrosD' pc (DMacro m) = implem pc m
+resolveMacrosD' pc (DMacro m) = fst $ implem (const 0) pc m
 resolveMacrosD' _ d = [d]
 
 resolveMacrosD :: String -> LDirective -> [LDirective]
@@ -186,7 +186,11 @@ debugAssemble f a = withFile f WriteMode $ \h -> do
   hPrint h postOptimized
   return postOptimized
 
-output :: String -> [Int] -> IO ()
-output f dat = withFile f WriteMode $ \h -> do
+outputLogisim :: String -> [Int] -> IO ()
+outputLogisim f dat = withFile f WriteMode $ \h -> do
   hPutStrLn h "v3.0 hex bytes plain big-endian"
   hPutStrLn h $ unwords $ map (printf "%04hx") dat
+
+outputVerilog :: String -> [Int] -> IO ()
+outputVerilog f dat = withFile f WriteMode $ \h -> do
+  hPutStrLn h $ unlines $ map (\(i, d) -> "    16'h" ++ printf "%04hx" i ++ ": rom = 16'h" ++ printf "%04hx" d ++ ";") $ filter ((/= 0) . snd) $ zip [0 :: Integer ..] dat

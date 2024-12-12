@@ -102,7 +102,7 @@ directive = do
     '$' -> DReg <$> register
     '(' -> calcDirective <* char ')'
     nn | isDigit nn || nn == '-' -> DNumber . read . (nn :) <$> many digitChar
-    nn | isLower nn -> DLabel . (nn :) <$> many lowerChar
+    nn | isLower nn -> DLabel . (nn :) <$> many alphaNumChar
     _ -> fail "no directive"
 
 mDirective :: Parser Directive
@@ -112,7 +112,7 @@ mDirective = do
 
 stringLDirective :: Parser LDirective
 stringLDirective = do
-  l <- some lowerChar
+  l <- (:) <$> lowerChar <*> many alphaNumChar
   (char ':' *> (LabelledDirective l <$> mDirective)) <|> return (RawDirective (DLabel l))
 
 lDirective :: Parser LDirective
