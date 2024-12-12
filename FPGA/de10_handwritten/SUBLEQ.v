@@ -51,79 +51,327 @@ module SUBLEQ(
 //=======================================================
 //  REG/WIRE declarations
 //=======================================================
-reg   [127:0]   data;
 reg     [4:0]   state           = 0;
 reg     [4:0]   next_state      = 0;
 
 wire   [21:0]   address;
-wire            reset           = 1'b0;
+wire            reset;
 
-wire            write_command;
-wire            read_command;
 wire            write_finished;
 wire            read_finished;
 wire  [127:0]   write_data;
 wire  [127:0]   read_data;
 
+wire            trigger_in;
+reg             in_ready;
+
 reg             write_request;
 reg             read_request;
 
-localparam SIZE = 65536;
-(* ram_init_file = "program.mif" *) reg [15:0] rom [SIZE-1:0];
-
 reg   [15:0] pc = 0;
+reg   [15:0] next_pc = 0;
 reg   [15:0] addr = 0;
 reg   [15:0] data_write_reg = 0;
-reg   [15:0] data_read_reg = 0;
+
+reg   [15:0] op0 = 0;
+reg   [15:0] op1 = 0;
+reg   [15:0] op2 = 0;
+reg   [15:0] calc = 0;
+
+reg   [15:0] last_out = 0;
+
+wire  clk_25;
+
+function [7:0] hex_digit(input [3:0] val, input dot);
+  begin
+    case(val)
+	 0: hex_digit = 8'b11000000 & ~(dot << 7);
+	 1: hex_digit = 8'b11111001 & ~(dot << 7);
+	 2: hex_digit = 8'b10100100 & ~(dot << 7);
+	 3: hex_digit = 8'b10110000 & ~(dot << 7);
+	 4: hex_digit = 8'b10011001 & ~(dot << 7);
+	 5: hex_digit = 8'b10010010 & ~(dot << 7);
+	 6: hex_digit = 8'b10000010 & ~(dot << 7);
+	 7: hex_digit = 8'b11111000 & ~(dot << 7);
+	 8: hex_digit = 8'b10000000 & ~(dot << 7);
+	 9: hex_digit = 8'b10010000 & ~(dot << 7);
+	 10: hex_digit = 8'b10001000 & ~(dot << 7);
+	 11: hex_digit = 8'b10000011 & ~(dot << 7);
+	 12: hex_digit = 8'b11000110 & ~(dot << 7);
+	 13: hex_digit = 8'b10100001 & ~(dot << 7);
+	 14: hex_digit = 8'b10000110 & ~(dot << 7);
+	 15: hex_digit = 8'b10001110 & ~(dot << 7);
+	 endcase
+  end
+endfunction
 
 //=======================================================
 //  Structural coding
 //=======================================================
 assign  write_data      = {112'b0, data_write_reg};
-assign  HEX0            = data_write_reg[8:0];
+assign  HEX0            = hex_digit(last_out[3:0],0);
+assign  HEX1            = hex_digit(last_out[7:4],0);
+assign  HEX2            = hex_digit(last_out[11:8],0);
+assign  HEX3            = hex_digit(last_out[15:12],0);
+assign  HEX4            = hex_digit(SW[3:0],1);
+assign  HEX5            = hex_digit(SW[7:4],0);
+assign  LEDR            = pc[9:0];
+assign  reset           = ~KEY[0];
 
 assign  address         = {6'b0,addr};
 
+always @* begin
+  if (reset)
+  begin
+    pc = 0;
+    state = 0;
+  end
+  else
+  begin
+    pc = next_pc;
+    state = next_state;
+  end
+end
+
+localparam SIZE = 16'hffff;
+function [15:0] rom(input[15:0] address);
+  begin
+    case(address)
+	 default:  rom = 16'h0000;
+	 endcase
+  end
+endfunction
+
 always @(posedge MAX10_CLK1_50)
 begin
-    state <= #1 next_state;
+    if (trigger_in)
+	   in_ready <= 1;
+
+    case (state)
+	 0:
+	 begin
+		 addr <= pc;
+		 data_write_reg <= rom(pc);
+		 write_request <= 0;
+		 read_request <= 0;
+		 next_pc <= pc + 16'd1;
+	    next_state <= 1;
+	 end
+	 1:
+	 begin
+		 addr <= addr;
+		 write_request <= 1;
+		 read_request <= 0;
+		 next_pc <= pc;
+		 if(write_finished && pc == SIZE)
+			next_state <= 2;
+		 else if(write_finished)
+			next_state <= 0;
+		 else
+			next_state <= 1;
+	 end
+	 2:
+	 begin
+		addr <= 0;
+		write_request <= 0;
+		read_request <= 0;
+		next_pc <= 0;
+		next_state <= 23;
+	 end
+	 23: // Set up for reading Op-1 (bizarre workaround)
+	 begin
+		addr <= 16'hffff;
+		write_request <= 0;
+		read_request <= 0;
+		next_pc <= pc;
+		next_state <= 24;
+	 end
+	 24: // Read Op-1
+	 begin
+		addr <= addr;
+		write_request <= 0;
+		read_request <= 1;
+		next_pc <= pc;
+		if (read_finished)
+		begin
+		  next_state <= 3;
+		end else begin
+		  next_state <= 24;
+		end
+	 end
+	 3: // Set up for reading Op0
+	 begin
+		addr <= pc;
+		write_request <= 0;
+		read_request <= 0;
+		next_pc <= pc;
+		next_state <= 4;
+	 end
+	 4: // Read Op0
+	 begin
+		addr <= addr;
+		write_request <= 0;
+		read_request <= 1;
+		next_pc <= pc;
+		if (read_finished)
+		begin
+		  op0 <= read_data[15:0];
+		  next_state <= 5;
+		end else begin
+		  next_state <= 4;
+		end
+	 end
+	 5: // Set up for reading Op1
+	 begin
+		addr <= pc + 16'd1;
+		write_request <= 0;
+		read_request <= 0;
+		next_pc <= pc;
+		next_state <= 6;
+	 end
+	 6: // Read Op1
+	 begin
+		addr <= addr;
+		write_request <= 0;
+		read_request <= 1;
+		next_pc <= pc;
+		if (read_finished)
+		begin
+		  op1 <= read_data[15:0];
+		  next_state <= 7;
+		end else begin
+		  next_state <= 6;
+		end
+	 end
+	 7: // Set up for reading Op2
+	 begin
+		addr <= pc + 16'd2;
+		write_request <= 0;
+		read_request <= 0;
+		next_pc <= pc;
+		next_state <= 8;
+	 end
+	 8: // Read Op2
+	 begin
+		addr <= addr;
+		write_request <= 0;
+		read_request <= 1;
+		next_pc <= pc;
+		if (read_finished)
+		begin
+		  op2 <= read_data[15:0];
+		  next_state <= 9;
+		end else begin
+		  next_state <= 8;
+		end
+	 end
+	 9: // Set up for reading @Op0
+	 begin
+		addr <= op0;
+		write_request <= 0;
+		read_request <= 0;
+		next_pc <= pc;
+		next_state <= 10;
+	 end
+	 10: // Read @Op0
+	 begin
+		addr <= addr;
+		write_request <= 0;
+		read_request <= 1;
+		next_pc <= pc;
+		if (read_finished)
+		begin
+		  calc <= read_data[15:0];
+		  next_state <= 11;
+		end else begin
+		  next_state <= 10;
+		end
+	 end
+	 11: // Set up for reading @Op1, perform output
+	 begin
+		addr <= op1;
+		write_request <= 0;
+		read_request <= 0;
+		next_pc <= pc;
+		next_state <= 12;
+		if (op1 == 16'hffff)
+		  last_out <= calc;
+	 end
+	 12: // Read @Op1
+	 begin
+		addr <= addr;
+		write_request <= 0;
+		read_request <= 1;
+		next_pc <= pc;
+		if (read_finished)
+		begin
+		  calc <= read_data[15:0] - calc;
+		  next_state <= 13;
+		end else begin
+		  next_state <= 12;
+		end
+	 end
+	 13: // Set up for writing @Op1
+	 begin
+		addr <= op1;
+		data_write_reg <= calc;
+		write_request <= 0;
+		read_request <= 0;
+		if (calc[15] == 1'b1 || calc == 0)
+		  next_pc <= op2;
+		else
+		  next_pc <= pc+16'd3;
+		next_state <= 14;
+	 end
+	 14: // Write @Op1
+	 begin
+		addr <= addr;
+		write_request <= 1;
+		read_request <= 0;
+		next_pc <= pc;
+		if (write_finished && in_ready)
+		begin
+		  next_state <= 15;
+		end else if (write_finished) begin
+		  next_state <= 23;
+		end else begin
+		  next_state <= 14;
+		end
+	 end
+	 15: // Set up for writing Input
+	 begin
+		addr <= 16'hfffe;
+		data_write_reg <= {8'hff,~SW[7:0]}+16'h1;
+		write_request <= 0;
+		read_request <= 0;
+		in_ready <= 0;
+		next_pc <= pc;
+		next_state <= 16;
+	 end
+	 16: // Write Input
+	 begin
+		addr <= addr;
+		write_request <= 1;
+		read_request <= 0;
+		next_pc <= pc;
+		if (write_finished) begin
+		  next_state <= 23;
+		end else begin
+		  next_state <= 16;
+		end
+	 end
+	 default: //sink state for debugging
+	 begin
+		addr <= addr;
+		data_write_reg <= data_write_reg;
+		write_request <= 0;
+		read_request <= 0;
+	   next_pc <= pc;
+      next_state <= state;
+	 end
+	 endcase
 end
 
-always @(state or read_finished or write_finished)
-begin
-  case (state)
-  0:
-  begin
-	 next_state <= 1;
-  end
-  1:
-  begin
-	 if(write_finished)
-	   next_state <= 0;
-	 else
-	   next_state <= 1;
-  end
-  endcase  
-end
-
-always @(state)
-begin
-  case(state)
-  0:
-  begin
-	 addr <= pc;
-	 data_write_reg <= rom[pc];
-	 write_request <= 1;
-	 read_request <= 0;
-	 pc <= pc + 1;
-  end
-  1:
-  begin
-	 write_request <= 0;
-	 read_request <= 0;
-  end
-  endcase
-end
 
 
 sdram_controller sdram_controller(
@@ -153,5 +401,25 @@ sdram_controller sdram_controller(
     .DRAM_UDQM(DRAM_UDQM),
     .DRAM_WE_N(DRAM_WE_N)
 );
+
+edge_det edge_det(
+    .clk(MAX10_CLK1_50),
+	 .sig(~KEY[1]),
+	 .edg(trigger_in)
+);
+
+pll pll(
+    .inclk0(MAX10_CLK2_50),
+    .c1(clk_25)
+);
+
+vga_lcd vga(
+  .clk_25(clk_25),
+  .VGA_R(VGA_R),
+  .VGA_G(VGA_G),
+  .VGA_B(VGA_B),
+  .VGA_HS(VGA_HS),
+  .VGA_VS(VGA_VS)
+);  
 
 endmodule

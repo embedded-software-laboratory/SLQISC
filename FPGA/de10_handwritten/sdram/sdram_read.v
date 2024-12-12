@@ -67,49 +67,8 @@ begin
         state <= #1 8'b00000001;
     else
         state <= #1 next_state;
-end
-
-always @(state or ireq or dqm_count or data_count)
-begin
-    case(state)
-        //IDLE
-        8'b00000001:
-            if(ireq)
-                next_state   <= 8'b00000010;
-            else
-                next_state   <= 8'b00000001;
-        //ACTIVE
-        8'b00000010:
-            next_state       <= 8'b00000100;
-        //NOP
-        8'b00000100:
-            next_state       <= 8'b00001000;
-        //READ
-        8'b00001000:
-            next_state       <= 8'b00010000;
-        //CAS - 1 NOP 
-        8'b00010000:
-            next_state       <= 8'b00100000;
-        //CAS - 2 NOP 
-        8'b00100000:
-            next_state       <= 8'b01000000;
-        //READING - 8
-        8'b01000000:
-            if(data_count)
-                next_state   <= 8'b10000000;
-            else
-                next_state   <= 8'b01000000;
-        //NOP - FIN
-        8'b10000000:
-            next_state       <= 8'b00000001;
-        default:
-            next_state       <= 8'b00000001;
-    endcase
-end
-
-always @(state)
-begin
-    case(state)
+		  
+	 case(state)
         //IDLE
         8'b00000001:
         begin
@@ -207,6 +166,49 @@ begin
             ctr_reset           <= #1 1'b0;
         end
     endcase
+end
+
+always @(state or ireq or dqm_count or data_count)
+begin
+    case(state)
+        //IDLE
+        8'b00000001:
+            if(ireq)
+                next_state   <= 8'b00000010;
+            else
+                next_state   <= 8'b00000001;
+        //ACTIVE
+        8'b00000010:
+            next_state       <= 8'b00000100;
+        //NOP
+        8'b00000100:
+            next_state       <= 8'b00001000;
+        //READ
+        8'b00001000:
+            next_state       <= 8'b00010000;
+        //CAS - 1 NOP 
+        8'b00010000:
+            next_state       <= 8'b00100000;
+        //CAS - 2 NOP 
+        8'b00100000:
+            next_state       <= 8'b01000000;
+        //READING - 8
+        8'b01000000:
+            if(data_count)
+                next_state   <= 8'b10000000;
+            else
+                next_state   <= 8'b01000000;
+        //NOP - FIN
+        8'b10000000:
+            next_state       <= 8'b00000001;
+        default:
+            next_state       <= 8'b00000001;
+    endcase
+end
+
+always @(state)
+begin
+    
 end
 
 endmodule

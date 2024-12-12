@@ -78,68 +78,7 @@ begin
         state <= #1 9'b000000001;
     else
         state <= #1 next_state;
-end
-
-always @(state or init_fin or iwrite_req or iread_req or write_fin or read_fin or next_prior)
-begin
-    case(state)
-        //Init States
-        9'b000000001:
-            next_state      <= 9'b000000010;
-        9'b000000010:
-            if(init_fin)
-                next_state  <= 9'b000000100;
-            else
-                next_state  <= 9'b000000010;
-                
-        //Idle State
-        9'b000000100:
-            if(next_prior)
-            begin
-                if(iread_req)
-                    next_state  <= 9'b001000000;
-                else if(iwrite_req)
-                    next_state  <= 9'b000001000;
-                else
-                    next_state  <= 9'b000000100;
-            end
-            else
-            begin
-                if(iwrite_req)
-                    next_state  <= 9'b000001000;
-                else if(iread_req)
-                    next_state  <= 9'b001000000;
-                else
-                    next_state  <= 9'b000000100;
-            end
-        //Write States
-        9'b000001000:
-            next_state      <= 9'b000010000;    
-        9'b000010000:
-            if(write_fin)
-                next_state  <= 9'b000100000;
-            else
-                next_state  <= 9'b000010000;
-        9'b000100000:
-            next_state      <= 9'b000000100;
-            
-        //Read States        `
-        9'b001000000:
-            next_state      <= 9'b010000000;
-        9'b010000000:
-            if(read_fin)
-                next_state  <= 9'b100000000;
-            else
-                next_state  <= 9'b010000000;
-        9'b100000000:
-            next_state      <= 9'b000000100;
-        default:
-            next_state      <= 9'b000000001;
-    endcase
-end
-
-always @(state)
-begin
+		  
     case(state)
         //Init States
         9'b000000001:
@@ -251,6 +190,69 @@ begin
             next_prior      <= 1'b0;
         end
     endcase
+end
+
+always @(state or init_fin or iwrite_req or iread_req or write_fin or read_fin or next_prior)
+begin
+    case(state)
+        //Init States
+        9'b000000001:
+            next_state      <= 9'b000000010;
+        9'b000000010:
+            if(init_fin)
+                next_state  <= 9'b000000100;
+            else
+                next_state  <= 9'b000000010;
+                
+        //Idle State
+        9'b000000100:
+            if(next_prior)
+            begin
+                if(iread_req)
+                    next_state  <= 9'b001000000;
+                else if(iwrite_req)
+                    next_state  <= 9'b000001000;
+                else
+                    next_state  <= 9'b000000100;
+            end
+            else
+            begin
+                if(iwrite_req)
+                    next_state  <= 9'b000001000;
+                else if(iread_req)
+                    next_state  <= 9'b001000000;
+                else
+                    next_state  <= 9'b000000100;
+            end
+        //Write States
+        9'b000001000:
+            next_state      <= 9'b000010000;    
+        9'b000010000:
+            if(write_fin)
+                next_state  <= 9'b000100000;
+            else
+                next_state  <= 9'b000010000;
+        9'b000100000:
+            next_state      <= 9'b000000100;
+            
+        //Read States        `
+        9'b001000000:
+            next_state      <= 9'b010000000;
+        9'b010000000:
+            if(read_fin)
+                next_state  <= 9'b100000000;
+            else
+                next_state  <= 9'b010000000;
+        9'b100000000:
+            next_state      <= 9'b000000100;
+        default:
+            next_state      <= 9'b000000001;
+    endcase
+end
+
+always @(state)
+begin
+    
 end
 
 sdram_initalize sdram_init (
