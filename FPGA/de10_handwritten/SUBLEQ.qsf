@@ -327,4 +327,6 @@ set_global_assignment -name SDC_FILE SUBLEQ.SDC
 set_global_assignment -name VERILOG_FILE edge_det.v
 set_global_assignment -name VERILOG_FILE vga/vga_lcd.v
 set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name VERILOG_FILE program.v
+set_global_assignment -name VERILOG_FILE debounce.v
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

@@ -1,11 +1,11 @@
 module vga_controller(
-   input [2559:0] rowbuffer_r,
-   input [2559:0] rowbuffer_g,
-   input [2559:0] rowbuffer_b,
+   input [3:0] buffer_r,
+   input [3:0] buffer_g,
+   input [3:0] buffer_b,
    input clk_25,	
 	
 	output           [8:0]     currentRow,
-	output                     requestRow,
+	output           [9:0]     currentCol,
 	
 	output		     [3:0]		VGA_R,
 	output		     [3:0]		VGA_G,
@@ -15,6 +15,8 @@ module vga_controller(
 		
 	reg[9:0] HCycle = 0;
 	reg[9:0] VCycle = 0;
+	reg[9:0] HCycleN = 0;
+	reg[9:0] VCycleN = 0;
 	
 	reg		     [3:0]		oR;
 	reg		     [3:0]		oG;
@@ -37,10 +39,19 @@ module vga_controller(
 	localparam VSync = 2;
 	localparam VOffset = 35;
 	
-	wire [31:0] diff;
+	wire [31:0] Hdiff;
+	assign Hdiff = HCycle - HOffset;
+	assign currentCol = Hdiff[9:0];
 	
-	assign diff = VCycle - VOffset;
-	assign currentRow = diff[8:0];
+	wire [31:0] Vdiff;
+	assign Vdiff = VCycle - VOffset;
+	assign currentRow = Vdiff[8:0];
+	
+	always @*
+	begin
+	  HCycle <= HCycleN;
+	  VCycle <= VCycleN;
+	end
 	
 	always @(posedge clk_25)
 	begin
@@ -48,13 +59,23 @@ module vga_controller(
 	    oVS <= ~(VCycle < VSync);
 		 if (HOffset <= HCycle && HCycle < HOffset + H
 		  && VOffset <= VCycle && VCycle < VOffset + V ) begin
-		   oR <= rowbuffer_r[4*(HCycle-HOffset) +: 4];
-		   oG <= rowbuffer_g[4*(HCycle-HOffset) +: 4];
-		   oB <= rowbuffer_b[4*(HCycle-HOffset) +: 4];
+		   oR <= buffer_r;
+		   oG <= buffer_g;
+		   oB <= buffer_b;
 		 end else begin
 		   oR <= 0;
 			oG <= 0;
 			oB <= 0;
+		 end
+		 if (HCycle + 1 == HCnt)
+		 begin
+		   HCycleN <= 0;
+			 if (VCycle + 1 == VCnt)
+			   VCycleN <= 0;
+			 else
+			   VCycleN <= VCycle + 10'd1;
+		 end else begin
+		   HCycleN <= HCycle + 10'd1;
 		 end
 	end
 	

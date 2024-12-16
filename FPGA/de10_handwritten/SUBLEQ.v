@@ -62,6 +62,7 @@ wire            read_finished;
 wire  [127:0]   write_data;
 wire  [127:0]   read_data;
 
+wire            d_key1;
 wire            trigger_in;
 reg             in_ready;
 
@@ -73,12 +74,15 @@ reg   [15:0] next_pc = 0;
 reg   [15:0] addr = 0;
 reg   [15:0] data_write_reg = 0;
 
+wire   [15:0]   romOut;
+
 reg   [15:0] op0 = 0;
 reg   [15:0] op1 = 0;
 reg   [15:0] op2 = 0;
 reg   [15:0] calc = 0;
 
 reg   [15:0] last_out = 0;
+reg          triggerOutput = 0;
 
 wire  clk_25;
 
@@ -116,7 +120,6 @@ assign  HEX3            = hex_digit(last_out[15:12],0);
 assign  HEX4            = hex_digit(SW[3:0],1);
 assign  HEX5            = hex_digit(SW[7:4],0);
 assign  LEDR            = pc[9:0];
-assign  reset           = ~KEY[0];
 
 assign  address         = {6'b0,addr};
 
@@ -134,13 +137,6 @@ always @* begin
 end
 
 localparam SIZE = 16'hffff;
-function [15:0] rom(input[15:0] address);
-  begin
-    case(address)
-	 default:  rom = 16'h0000;
-	 endcase
-  end
-endfunction
 
 always @(posedge MAX10_CLK1_50)
 begin
@@ -151,7 +147,7 @@ begin
 	 0:
 	 begin
 		 addr <= pc;
-		 data_write_reg <= rom(pc);
+		 data_write_reg <= romOut;
 		 write_request <= 0;
 		 read_request <= 0;
 		 next_pc <= pc + 16'd1;
@@ -185,6 +181,7 @@ begin
 		read_request <= 0;
 		next_pc <= pc;
 		next_state <= 24;
+		triggerOutput <= 0;
 	 end
 	 24: // Read Op-1
 	 begin
@@ -294,8 +291,9 @@ begin
 		read_request <= 0;
 		next_pc <= pc;
 		next_state <= 12;
-		if (op1 == 16'hffff)
+		if (op1 == 16'hffff) begin
 		  last_out <= calc;
+		end
 	 end
 	 12: // Read @Op1
 	 begin
@@ -303,6 +301,9 @@ begin
 		write_request <= 0;
 		read_request <= 1;
 		next_pc <= pc;
+		if (op1 == 16'hffff) begin
+		  triggerOutput <= 1;
+		end
 		if (read_finished)
 		begin
 		  calc <= read_data[15:0] - calc;
@@ -404,22 +405,43 @@ sdram_controller sdram_controller(
 
 edge_det edge_det(
     .clk(MAX10_CLK1_50),
-	 .sig(~KEY[1]),
+	 .sig(d_key1),
 	 .edg(trigger_in)
 );
 
 pll pll(
-    .inclk0(MAX10_CLK2_50),
+    .inclk0(MAX10_CLK1_50),
     .c1(clk_25)
 );
 
 vga_lcd vga(
   .clk_25(clk_25),
+  .clk_50(MAX10_CLK1_50),
+  .addInput(triggerOutput),
+  .charCode(last_out[6:0]),
+  .reset(reset),
   .VGA_R(VGA_R),
   .VGA_G(VGA_G),
   .VGA_B(VGA_B),
   .VGA_HS(VGA_HS),
   .VGA_VS(VGA_VS)
 );  
+
+program_rom program_rom(
+  .address(pc),
+  .instruction(romOut)
+);
+
+debounce reset_debounce(
+  .clk(MAX10_CLK1_50),
+  .sig(~KEY[0]),
+  .d_sig(reset)
+);
+
+debounce input_debounce(
+  .clk(MAX10_CLK1_50),
+  .sig(~KEY[1]),
+  .d_sig(d_key1)
+);
 
 endmodule
