@@ -21,4 +21,4 @@ main = do
       cmp <- if verbose then debugAssemble (name ++ ".out") asm else return $ assemble asm
       when verbose $ print cmp
       outputLogisim (name ++ ".hex") cmp
-      outputVerilog (name ++ ".v") cmp
+      outputMif (name ++ ".mif") cmp

@@ -30,8 +30,13 @@ singleReplacements (DMacro (MMov x (DImm k))) = [DMacro (MSub x x), DMacro (MSub
 singleReplacements (DMacro (MSub _ (DImm 0))) = []
 singleReplacements d = [d]
 
+multiReplacements :: [Directive] -> [Directive]
+multiReplacements [] = []
+multiReplacements (DMacro (MSub a b) : DMacro (MJLeq c t) : ds) | a == c = multiReplacements (DMacro (MSLQ b a t) : ds)
+multiReplacements (d : ds) = d : multiReplacements ds
+
 optimizeMacros :: [Directive] -> [Directive]
-optimizeMacros ls = ls >>= singleReplacements
+optimizeMacros ls = multiReplacements (ls >>= singleReplacements)
 
 preOptimize :: Assembly -> Assembly
 preOptimize = map (\s -> s {directives = labelPreservingMap optimizeMacros (directives s)})
@@ -147,8 +152,8 @@ debugPostOptimize xs = do
   print (staticReads bbcfa)
   putStr "Writes: "
   print (staticWrites bbcfa)
-  putStr "Values: "
-  print (progFix xs :: ProgramState Const)
+  -- putStr "Values: "
+  -- print (progFix xs :: ProgramState Const)
   return xs
 
 blockOptimize :: [(Int, Int)] -> ([(Int, Int)], Int -> Int)

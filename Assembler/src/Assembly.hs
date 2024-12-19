@@ -49,6 +49,7 @@ data Macro
   | MString String
   | MCall Directive
   | MRet
+  deriving (Eq)
 
 cur :: Directive
 cur = DCur
@@ -252,7 +253,7 @@ instance Show Macro where
 nobranch :: Directive -> Directive -> [Directive]
 nobranch a b = [a, b, DCur + 1]
 
-data Reg = ROut | RIn | RSP | RGPR Int
+data Reg = ROut | RIn | RSP | RGPR Int deriving (Eq)
 
 instance Show Reg where
   show ROut = "O"
@@ -272,6 +273,7 @@ data Directive
   | DMul Directive Directive
   | DMacro Macro
   | DReg Reg
+  deriving (Eq)
 
 instance Show Directive where
   show (DNumber i) = show i

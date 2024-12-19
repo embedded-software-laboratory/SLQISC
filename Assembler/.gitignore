@@ -4,3 +4,4 @@ stack.yaml.lock
 *.hex
 *.out
 *.v
+*.mif

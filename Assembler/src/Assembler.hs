@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Assembler (assemble, debugAssemble, outputLogisim, outputVerilog) where
+module Assembler (assemble, debugAssemble, outputLogisim, outputMif) where
 
 import Assembly
   ( Assembly,
@@ -12,6 +12,7 @@ import Assembly
     implem,
     sectionSize,
   )
+import Control.Monad
 import Data.List (elemIndex, findIndex, nub, sortOn)
 import Data.Maybe
 import Optimizer (debugPostOptimize, postOptimize, preOptimize)
@@ -145,7 +146,7 @@ resolveMacrosD' _ d = [d]
 
 resolveMacrosD :: String -> LDirective -> [LDirective]
 resolveMacrosD _ (LabelledDirective l d) = (\case (x : xs) -> LabelledDirective l x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel l) d)
-resolveMacrosD free (RawDirective d) = (\case (x : xs) -> LabelledDirective (show free) x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel (show free)) d)
+resolveMacrosD free (RawDirective d) = (\case (x : xs) -> LabelledDirective free x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel free) d)
 
 resolveMacros :: Assembly -> Assembly
 resolveMacros = map (\s -> s {directives = zip [0 :: Int ..] (directives s) >>= (\(i, d) -> resolveMacrosD ("_" ++ sName s ++ show i) d)})
@@ -191,6 +192,18 @@ outputLogisim f dat = withFile f WriteMode $ \h -> do
   hPutStrLn h "v3.0 hex bytes plain big-endian"
   hPutStrLn h $ unwords $ map (printf "%04hx") dat
 
-outputVerilog :: String -> [Int] -> IO ()
-outputVerilog f dat = withFile f WriteMode $ \h -> do
-  hPutStrLn h $ unlines $ map (\(i, d) -> "    16'h" ++ printf "%04hx" i ++ ": rom = 16'h" ++ printf "%04hx" d ++ ";") $ filter ((/= 0) . snd) $ zip [0 :: Integer ..] dat
+outputMif :: String -> [Int] -> IO ()
+outputMif f dat = withFile f WriteMode $ \h -> do
+  hPutStrLn h "WIDTH = 16;"
+  hPutStrLn h "DEPTH = 65536;"
+  hPutStrLn h ""
+  hPutStrLn h "ADDRESS_RADIX = HEX;"
+  hPutStrLn h "DATA_RADIX = HEX;"
+  hPutStrLn h "CONTENT BEGIN"
+  hPutStrLn h $ unlines $ zipWith (\i d -> "  " ++ printf "%04hx" i ++ ": " ++ printf "%04hx" d ++ ";") [0 :: Integer ..] dat
+  when (length dat < 65535) $
+    hPutStrLn h $
+      "  [" ++ printf "%04hx" (length dat) ++ "..ffff] : XXXX;"
+  when (length dat == 65535) $
+    hPutStrLn h "  ffff: XXXX;"
+  hPutStrLn h "END;"

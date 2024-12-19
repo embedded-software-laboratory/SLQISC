@@ -15,6 +15,10 @@ entry:
   JMP entry
 prime:
   CALL bcdout
+  MOV $0 #-32760
+delay:
+  INC $0
+  JLEQ $0 delay
 nonprime:
   INC vx
   MOV vd #2
