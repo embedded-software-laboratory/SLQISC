@@ -4,32 +4,9 @@
 
   <lib desc="#Wiring" name="0">
     <tool name="Splitter">
-      <a name="bit1" val="0"/>
-      <a name="bit10" val="2"/>
-      <a name="bit11" val="2"/>
-      <a name="bit12" val="2"/>
-      <a name="bit13" val="2"/>
-      <a name="bit14" val="2"/>
-      <a name="bit15" val="3"/>
-      <a name="bit16" val="3"/>
-      <a name="bit17" val="3"/>
-      <a name="bit18" val="3"/>
-      <a name="bit19" val="3"/>
-      <a name="bit2" val="0"/>
-      <a name="bit20" val="4"/>
-      <a name="bit21" val="4"/>
-      <a name="bit22" val="4"/>
-      <a name="bit23" val="4"/>
-      <a name="bit24" val="4"/>
-      <a name="bit3" val="0"/>
-      <a name="bit4" val="0"/>
-      <a name="bit5" val="1"/>
-      <a name="bit6" val="1"/>
-      <a name="bit7" val="1"/>
-      <a name="bit8" val="1"/>
-      <a name="bit9" val="1"/>
-      <a name="fanout" val="5"/>
-      <a name="incoming" val="25"/>
+      <a name="facing" val="south"/>
+      <a name="fanout" val="8"/>
+      <a name="incoming" val="8"/>
     </tool>
     <tool name="Pin">
       <a name="appearance" val="classic"/>
@@ -40,8 +17,8 @@
       <a name="labelloc" val="east"/>
     </tool>
     <tool name="Constant">
-      <a name="value" val="0x12"/>
-      <a name="width" val="7"/>
+      <a name="value" val="0xfffe"/>
+      <a name="width" val="16"/>
     </tool>
     <tool name="Bit Extender">
       <a name="type" val="zero"/>
@@ -60,11 +37,11 @@
   </lib>
   <lib desc="#Plexers" name="2">
     <tool name="Multiplexer">
+      <a name="select" val="3"/>
       <a name="width" val="16"/>
     </tool>
     <tool name="Decoder">
-      <a name="facing" val="south"/>
-      <a name="select" val="4"/>
+      <a name="select" val="3"/>
     </tool>
   </lib>
   <lib desc="#Arithmetic" name="3">
@@ -1348,7 +1325,6 @@ e8c631 2294bf ead6ac fa5208 8ad6be 1f21083 5c00 208436
     <wire from="(380,110)" to="(390,110)"/>
     <wire from="(390,830)" to="(400,830)"/>
     <wire from="(390,870)" to="(390,890)"/>
-    <wire from="(390,870)" to="(520,870)"/>
     <wire from="(390,890)" to="(400,890)"/>
     <wire from="(40,110)" to="(100,110)"/>
     <wire from="(410,110)" to="(420,110)"/>

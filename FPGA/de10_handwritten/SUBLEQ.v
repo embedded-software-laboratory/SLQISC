@@ -71,6 +71,7 @@ reg             read_request;
 
 reg   [15:0] pc = 0;
 reg   [15:0] next_pc = 0;
+reg   [15:0] old_pc = 0;
 reg   [15:0] addr = 0;
 reg   [15:0] data_write_reg = 0;
 
@@ -83,6 +84,9 @@ reg   [15:0] calc = 0;
 
 reg   [15:0] last_out = 0;
 reg          triggerOutput = 0;
+
+reg   [47:0] last_instr = 0;
+reg   [31:0] last_ref = 0;
 
 wire  clk_25;
 
@@ -123,7 +127,7 @@ assign  LEDR            = pc[9:0];
 
 assign  address         = {6'b0,addr};
 
-always @* begin
+always @(next_pc or next_state or reset) begin
   if (reset)
   begin
     pc = 0;
@@ -142,15 +146,18 @@ always @(posedge MAX10_CLK1_50)
 begin
     if (trigger_in)
 	   in_ready <= 1;
-
     case (state)
 	 0:
 	 begin
 		 addr <= pc;
-		 data_write_reg <= romOut;
 		 write_request <= 0;
 		 read_request <= 0;
 		 next_pc <= pc + 16'd1;
+	    next_state <= 20;
+	 end
+	 20:
+	 begin
+		 data_write_reg <= romOut;
 	    next_state <= 1;
 	 end
 	 1:
@@ -269,6 +276,7 @@ begin
 		read_request <= 0;
 		next_pc <= pc;
 		next_state <= 10;
+		last_instr <= {op0,op1,op2};
 	 end
 	 10: // Read @Op0
 	 begin
@@ -279,6 +287,7 @@ begin
 		if (read_finished)
 		begin
 		  calc <= read_data[15:0];
+		  last_ref[31:16] <= read_data[15:0];
 		  next_state <= 11;
 		end else begin
 		  next_state <= 10;
@@ -307,6 +316,7 @@ begin
 		if (read_finished)
 		begin
 		  calc <= read_data[15:0] - calc;
+		  last_ref[15:0] <= read_data[15:0];
 		  next_state <= 13;
 		end else begin
 		  next_state <= 12;
@@ -318,6 +328,7 @@ begin
 		data_write_reg <= calc;
 		write_request <= 0;
 		read_request <= 0;
+		old_pc <= pc;
 		if (calc[15] == 1'b1 || calc == 0)
 		  next_pc <= op2;
 		else
@@ -330,8 +341,9 @@ begin
 		write_request <= 1;
 		read_request <= 0;
 		next_pc <= pc;
-		if (write_finished && in_ready)
-		begin
+		if (write_finished && SW[9]) begin
+		  next_state <= 17;
+		end else if (write_finished && in_ready) begin
 		  next_state <= 15;
 		end else if (write_finished) begin
 		  next_state <= 23;
@@ -361,14 +373,26 @@ begin
 		  next_state <= 16;
 		end
 	 end
-	 default: //sink state for debugging
+	 17: // Halt State
 	 begin
 		addr <= addr;
 		data_write_reg <= data_write_reg;
 		write_request <= 0;
 		read_request <= 0;
 	   next_pc <= pc;
-      next_state <= state;
+		if (SW[9] && !trigger_in)
+			next_state <= 17;
+		else
+			next_state <= 23;
+	 end
+	 default:
+	 begin
+		addr <= addr;
+		data_write_reg <= data_write_reg;
+		write_request <= 0;
+		read_request <= 0;
+	   next_pc <= pc;
+      next_state <= 17;
 	 end
 	 endcase
 end
@@ -410,16 +434,21 @@ edge_det edge_det(
 );
 
 pll pll(
-    .inclk0(MAX10_CLK1_50),
+    .inclk0(MAX10_CLK2_50),
     .c1(clk_25)
 );
 
 vga_lcd vga(
   .clk_25(clk_25),
   .clk_50(MAX10_CLK1_50),
+  .inval(SW[7:0]),
+  .pcval(old_pc),
   .addInput(triggerOutput),
   .charCode(last_out[6:0]),
   .reset(reset),
+  .instr(last_instr),
+  .refs(last_ref),
+  .debug(SW[9]),
   .VGA_R(VGA_R),
   .VGA_G(VGA_G),
   .VGA_B(VGA_B),
@@ -428,6 +457,7 @@ vga_lcd vga(
 );  
 
 program_rom program_rom(
+  .clk(MAX10_CLK1_50),
   .address(pc),
   .instruction(romOut)
 );
