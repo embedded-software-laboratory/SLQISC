@@ -12,6 +12,7 @@ import Assembly
     implem,
     sectionSize,
   )
+import Control.Arrow
 import Control.Monad
 import Data.List (elemIndex, findIndex, nub, sortOn)
 import Data.Maybe
@@ -140,16 +141,21 @@ toInt (DReg r) = regToInt r
 toInts :: [Directive] -> [Int]
 toInts = map toInt
 
-resolveMacrosD' :: Directive -> Directive -> [Directive]
-resolveMacrosD' pc (DMacro m) = fst $ implem (const 0) pc m
-resolveMacrosD' _ d = [d]
+resolveMacrosD' :: Directive -> Directive -> ([Directive], Int)
+resolveMacrosD' pc (DMacro m) = implem ((DLabel "_v" +) . DNumber) pc m
+resolveMacrosD' _ d = ([d], 0)
 
-resolveMacrosD :: String -> LDirective -> [LDirective]
-resolveMacrosD _ (LabelledDirective l d) = (\case (x : xs) -> LabelledDirective l x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel l) d)
-resolveMacrosD free (RawDirective d) = (\case (x : xs) -> LabelledDirective free x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel free) d)
+resolveMacrosD :: String -> LDirective -> ([LDirective], Int)
+resolveMacrosD _ (LabelledDirective l d) = first (\case (x : xs) -> LabelledDirective l x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel l) d)
+resolveMacrosD free (RawDirective d) = first (\case (x : xs) -> LabelledDirective free x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel free) d)
 
 resolveMacros :: Assembly -> Assembly
-resolveMacros = map (\s -> s {directives = zip [0 :: Int ..] (directives s) >>= (\(i, d) -> resolveMacrosD ("_" ++ sName s ++ show i) d)})
+resolveMacros a =
+  let resolved s = zipWith (\i -> resolveMacrosD ("_" ++ sName s ++ show i)) [0 :: Int ..] (directives s)
+      newDirs = map (\s -> s {directives = resolved s >>= fst}) a
+      vCount = maximum $ a >>= (map snd . resolved)
+      preSection = Section "__vars" Nothing (LabelledDirective "_v" 0 : replicate (vCount - 1) (RawDirective 0))
+   in if vCount > 0 then preSection : newDirs else newDirs
 
 assemble :: Assembly -> [Int]
 assemble = postOptimize . toInts . resolveLabels . squash . padSections . placeSections . constSection . resolveMacros . preOptimize

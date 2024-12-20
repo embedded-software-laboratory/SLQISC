@@ -4,7 +4,6 @@ import Assembly
 import Data.List (intercalate, nub, (\\))
 import Data.Map.Strict qualified as M
 import Data.Maybe
-import Simulator
 
 mul2 :: Directive -> [Directive]
 mul2 x = [DMacro (MAdd x x)]

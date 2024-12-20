@@ -1,2 +1,2 @@
 SECTION main[@0]
-  MUL #3 #5
+  MUL 3 5

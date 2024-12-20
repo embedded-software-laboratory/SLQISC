@@ -101,34 +101,38 @@ implem loc pc (MPop a) =
    in (p1 ++ p2, max c1 c2)
 implem _ _ (MAdd a b) = (nobranch b (DImm 0) ++ nobranch (DImm 0) a ++ nobranch (DImm 0) (DImm 0), 0)
 implem _ _ (MSub a b) = (nobranch b a, 0)
-implem _ _ (MMul a b) =
-  let i =
-        [cur + 7, cur + 6, cur + 1, cur + 3, cur + 2, cur + 3, 0, 0]
+implem loc _ (MMul a b) =
+  let x = loc 0
+      y = loc 1
+      i =
+        nobranch x x
+          ++ nobranch y y
           ++ nobranch b (DImm 0)
-          ++ [DImm 0, cur - 6, cur + 16]
+          ++ [DImm 0, x, cur + 16]
           ++ nobranch (DImm 0) (DImm 0)
-          ++ nobranch (DImm 1) (cur - 12)
+          ++ nobranch (DImm 1) x
           ++ nobranch a (DImm 0)
-          ++ nobranch (DImm 0) (cur - 17)
+          ++ nobranch (DImm 0) y
           ++ [DImm 0, DImm 0, cur - 17]
           ++ nobranch a a
-          ++ nobranch (cur - 25) (DImm 0)
+          ++ nobranch y (DImm 0)
           ++ nobranch (DImm 0) a
           ++ nobranch (DImm 0) (DImm 0)
-   in (i, 0)
-implem _ _ (MDiv a b) =
-  let i =
-        [cur + 3, cur + 2, cur + 2, 0]
+   in (i, 2)
+implem loc _ (MDiv a b) =
+  let x = loc 0
+      i =
+        nobranch x x
           ++ nobranch (DImm (-1)) a
-          ++ nobranch (DImm (-1)) (cur - 5)
+          ++ nobranch (DImm (-1)) x
           ++ [b, a, cur + 4]
           ++ [DImm 0, DImm 0, cur - 8]
           ++ nobranch a a
-          ++ nobranch (cur - 16) (DImm 0)
+          ++ nobranch x (DImm 0)
           ++ nobranch (DImm 0) a
           ++ nobranch (DImm 0) (DImm 0)
           ++ nobranch (DImm 1) a
-   in (i, 0)
+   in (i, 1)
 implem loc pc (MMod a b) =
   let (p, c) = implem loc (pc + 9) (MAdd a b)
       i =
