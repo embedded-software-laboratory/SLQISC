@@ -31,9 +31,9 @@ vgabox #(.SYMBOLS(SYMBOLS), .TOP(TOP), .LEFT(LEFT)) box(
 function [6:0] digitToIndex(input[3:0] digit);
   begin
     if (digit <= 9) begin
-	   digitToIndex = {3'b0,digit}+28;
+	   digitToIndex = {3'b0,digit}+7'd28;
 	 end else begin
-	   digitToIndex = {3'b0,digit}-9;
+	   digitToIndex = {3'b0,digit}-7'd9;
 	 end
   end
 endfunction

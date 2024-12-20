@@ -31,7 +31,6 @@ module vga_lcd(
 	wire inpix;
 	wire instrpix;
 	wire refpix;
-	wire statepix;
 	
 	reg [7*16-1:0] characters;
 	
@@ -39,7 +38,7 @@ module vga_lcd(
 	reg [3:0] freeXN = 0;
 	
 	wire runpix = outpix || inpix;
-	wire debpix = outpix || pcpix || inpix || instrpix || refpix || statepix;
+	wire debpix = outpix || pcpix || inpix || instrpix || refpix ;
 	wire acpix = debug ? debpix : runpix;
 	
    assign buffer_r = acpix ? 4'd15 : 4'd0;
@@ -62,7 +61,7 @@ begin
   end else begin
 	  if(addInput && !processed) begin
 		 characters[freeX*7 +: 7] <= charCode;
-		 freeXN <= freeX + 1;
+		 freeXN <= freeX + 4'b1;
 		 processed <= 1;
 	  end
 	  if (!addInput)
