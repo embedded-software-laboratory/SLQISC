@@ -34,6 +34,9 @@ correct:
   OUT @ 
   OUT @ 
   OUT @ 
+  OUT @ 
+  OUT @ 
+  OUT @ 
   JMP trap
 liar:
   OUT @Y
@@ -45,6 +48,8 @@ liar:
   OUT @E
   OUT @D
   OUT @!
+  OUT @ 
+  OUT @ 
   OUT @ 
   OUT @ 
   OUT @ 

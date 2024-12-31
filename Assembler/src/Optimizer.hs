@@ -31,7 +31,9 @@ singleReplacements d = [d]
 
 multiReplacements :: [Directive] -> [Directive]
 multiReplacements [] = []
-multiReplacements (DMacro (MSub a b) : DMacro (MJLeq c t) : ds) | a == c = multiReplacements (DMacro (MSLQ b a t) : ds)
+multiReplacements (DMacro (MSub a b) : DMacro (MJLeq c t) : ds) | a == c = multiReplacements ([b, a, t] ++ ds)
+multiReplacements (DMacro (MInc a) : DMacro (MJLeq c t) : ds) | a == c = multiReplacements ([DImm (-1), a, t] ++ ds)
+multiReplacements (DMacro (MDec a) : DMacro (MJLeq c t) : ds) | a == c = multiReplacements ([DImm 1, a, t] ++ ds)
 multiReplacements (d : ds) = d : multiReplacements ds
 
 optimizeMacros :: [Directive] -> [Directive]

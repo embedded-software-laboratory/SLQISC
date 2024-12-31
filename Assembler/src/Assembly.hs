@@ -24,6 +24,7 @@ charValue c = fromJust $ elemIndex c charArray
 
 data Macro
   = MSLQ Directive Directive Directive
+  | MNop
   | MMov Directive Directive
   | MSTI Directive Directive
   | MLDI Directive Directive
@@ -59,6 +60,7 @@ offset = fromIntegral . length
 
 implem :: (Int -> Directive) -> Directive -> Macro -> ([Directive], Int)
 implem _ _ (MSLQ a b c) = ([a, b, c], 0)
+implem _ _ MNop = (nobranch (DImm 0) (DImm 0),0)
 implem loc pc (MMov a b) =
   let (p, r) = implem loc (pc + 3) (MAdd a b)
    in (nobranch a a ++ p, r)
@@ -228,6 +230,7 @@ implemList loc pc = snd . foldl (\(pc', (r, cr)) m -> let (ds, cs) = implem loc 
 
 instance Show Macro where
   show (MSLQ a b c) = "SLQ " ++ show a ++ ", " ++ show b ++ ", " ++ show c
+  show MNop = "NOP"
   show (MMov a b) = "MOV " ++ show a ++ ", " ++ show b
   show (MSTI a b) = "STI " ++ show a ++ ", " ++ show b
   show (MLDI a b) = "LDI " ++ show a ++ ", " ++ show b

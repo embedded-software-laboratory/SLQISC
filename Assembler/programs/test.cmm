@@ -1,0 +1,14 @@
+var gx
+var gy
+
+def main()
+  [var x, var y]
+{
+  call func(x) -> y;
+  while 1 do {}
+}
+
+def func(var in)[]
+{
+  return + in 3
+}
