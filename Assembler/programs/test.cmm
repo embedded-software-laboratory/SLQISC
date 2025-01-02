@@ -4,7 +4,9 @@ var gy
 def main()
   [var x, var y]
 {
+  in x;
   call func(x) -> y;
+  out y;
   while 1 do {}
 }
 

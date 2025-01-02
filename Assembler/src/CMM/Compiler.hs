@@ -27,7 +27,8 @@ compileBinary i Div = [DMacro $ MDiv (expRegister i) (expRegister (i+1))]
 compileBinary i Mod = [DMacro $ MMod (expRegister i) (expRegister (i+1))]
 compileBinary i And = [DMacro $ MAnd (expRegister i) (expRegister (i+1))]
 compileBinary i Or = [DMacro $ MOr (expRegister i) (expRegister (i+1))]
-compileBinary _ _ = undefined
+compileBinary i Gt = [DMacro $ MSub (expRegister i) (expRegister (i+1)), DMacro $ MDiv (expRegister i) (expRegister i)]
+compileBinary i Neq = [DMacro $ MSub (expRegister i) (expRegister (i+1)), DMacro $ MMul (expRegister i) (expRegister i), DMacro $ MDiv (expRegister i) (expRegister i)]
 
 compileExpression' :: M.Map String Directive -> Int -> Expression -> [Directive]
 compileExpression' _ i (Literal z) = [DMacro $ MMov (expRegister i) (DImm z)]
@@ -53,13 +54,17 @@ compileStatement free allocs (While e s) =
       (sDirs,f) = compileStatement free allocs s
       dirs = [LabelledDirective ("_while" ++ show f) (DMacro MNop)] ++ eDirs ++ [RawDirective (DMacro $ MJLeq (expRegister 0) (DLabel ("_wend" ++ show f)))] ++ sDirs ++ [RawDirective (DMacro $ MJmp (DLabel ("_while" ++ show f))),LabelledDirective ("_wend" ++ show f) (DMacro MNop)]
       in (dirs,f+1)
-compileStatement free allocs (Return e) = (map RawDirective (compileExpression allocs e) ++ [RawDirective (DMacro MRet)],free)
+compileStatement free allocs (Return e) = (map RawDirective (compileExpression allocs e) ++ [RawDirective (DMacro (MMov (DReg (RGPR 0)) (expRegister 0))),RawDirective (DMacro MRet)],free)
 compileStatement free allocs (Block ss) =
   let (dirs,f) = foldl (\(ds,fr) s -> let (sDs,sFr) = compileStatement fr allocs s in (ds ++ sDs,sFr)) ([],free) ss
   in (dirs,f)
 compileStatement free allocs (Call t n es) =
   let eDirs = concat $ zipWith (\i e -> map RawDirective (compileExpression allocs e) ++ [RawDirective (DMacro $ MMov (DReg $ RGPR (i+4)) (expRegister 0))]) [0..] es
   in (eDirs ++ [RawDirective (DMacro $ MCall (DLabel n)),RawDirective (DMacro $ MMov (allocs M.! t) (DReg $ RGPR 0))],free)
+compileStatement free allocs (Out e) =
+  let eDirs = map RawDirective $ compileExpression allocs e
+  in (eDirs ++ [RawDirective (DMacro $ MOut (expRegister 0))],free)
+compileStatement free allocs (In n) = ([RawDirective (DMacro $ MIn (allocs M.! n))],free)
 
 functionAllocations :: M.Map String Directive -> [Declaration] -> [Declaration] -> M.Map String Directive
 functionAllocations globals params locals =

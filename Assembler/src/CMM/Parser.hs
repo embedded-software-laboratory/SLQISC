@@ -33,11 +33,11 @@ variable = do
 
 uop :: Parser UOp
 uop = do
-  op <- string "~" <|> string "!" <|> string "*" <|> string "&"
+  op <- string "~" <|> string "!" <|> string "^" <|> string "&"
   return $ case op of
     "~" -> Neg
     "!" -> Not
-    "*" -> Deref
+    "^" -> Deref
     "&" -> Addr
 
 unary :: Parser Expression
@@ -57,7 +57,7 @@ bop = do
     "&&" -> And
     "||" -> Or
     "==" -> Eq
-    "!=" -> Neq
+    "/=" -> Neq
     "<" -> Lt
     ">" -> Gt
     "<=" -> Le
@@ -137,10 +137,24 @@ call = do
   cWhitespace
   return $ Call t n es
 
+out :: Parser Statement
+out = do
+  _ <- string "out"
+  cWhitespace
+  Out <$> expression
+
+in' :: Parser Statement
+in' = do
+  _ <- string "in"
+  cWhitespace
+  n <- (:) <$> letterChar <*> many alphaNumChar
+  cWhitespace
+  return $ In n
+
 statement :: Parser Statement
 statement = do
   cWhitespace
-  ifStatement <|> whileStatement <|> returnStatement <|> call <|> block<|> assignment
+  ifStatement <|> whileStatement <|> returnStatement <|> call <|> out <|> in' <|> block <|> assignment
 
 function :: Parser Function
 function = do

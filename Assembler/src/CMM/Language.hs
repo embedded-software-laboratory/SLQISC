@@ -11,7 +11,7 @@ data BOp = Add | Sub | Mul | Div | Mod | And | Or | Eq | Neq | Lt | Gt | Le | Ge
 
 data Expression = Literal Int | Variable String | Unary UOp Expression | Binary BOp Expression Expression
 
-data Statement = Assign String Expression | If Expression Statement Statement | While Expression Statement | Return Expression | Block [Statement] | Call String String [Expression]
+data Statement = Assign String Expression | If Expression Statement Statement | While Expression Statement | Return Expression | Block [Statement] | Call String String [Expression] | Out Expression | In String
 
 data Function = Function String [Declaration] [Declaration] Statement
 
@@ -54,6 +54,8 @@ instance Show Statement where
   show (Return e) = "return " ++ show e ++ ";"
   show (Block ss) = "{\n" ++ intercalate "\n" (map show ss) ++ "\n}"
   show (Call t n es) = t ++ " := " ++ n ++ "(" ++ intercalate ", " (map show es) ++ ")"
+  show (Out e) = "out " ++ show e
+  show (In n) = "in " ++ n
 
 instance Show Function where
   show (Function n ps ls s) = "def " ++ n ++ "(" ++ intercalate ", " (map show ps) ++ ") {\n" ++ intercalate "\n" (map show ls) ++ "\n" ++ show s ++ "\n}"

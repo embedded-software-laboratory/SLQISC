@@ -1,0 +1,37 @@
+def main()
+  [var cur, var isP]
+{
+  cur := 2;
+  while 1 do
+  {
+    call isPrime(cur) -> isP;
+    if isP then
+      call decPrint(cur) -> isP
+    else {};
+    cur := + cur 1
+  }
+}
+
+def isPrime(var p)
+  [var d]
+{
+  d := 2;
+  while 1 do
+    if > * d 2 p then
+      return 1
+    else
+      if /= % p d 0 then
+        d := + d 1
+      else
+        return 0
+}
+
+def decPrint(var x)
+  []
+{
+  out + / x 10000 27;
+  out + % / x 1000 10 27;
+  out + % / x 100 10 27;
+  out + % / x 10 10 27;
+  out + % x 10 27
+}
