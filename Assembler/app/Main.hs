@@ -24,6 +24,7 @@ mainCMM verbose filename input = case parseCMM filename input of
     Right prog -> do
       let name = reverse $ takeWhile isAlphaNum $ reverse $ takeWhile (/= '.') filename
       let asm = compile prog
+      if verbose then print asm else return ()
       cmp <- if verbose then debugAssemble (name ++ ".out") asm else return $ assemble asm
       when verbose $ print cmp
       outputLogisim (name ++ ".hex") cmp
