@@ -1,7 +1,7 @@
 {
   description = "A Nix-flake-based Haskell development environment";
 
-  inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
 
   outputs = inputs:
     let
