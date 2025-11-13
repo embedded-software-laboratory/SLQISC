@@ -5,3 +5,5 @@ stack.yaml.lock
 *.out
 *.v
 *.mif
+.direnv
+.envrc
