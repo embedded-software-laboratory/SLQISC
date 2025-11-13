@@ -13,7 +13,7 @@
     {
       devShells = forEachSupportedSystem ({ pkgs }: {
         default = pkgs.mkShell {
-          name = "slqisc-asm";
+          name = "slqisc-subleq";
           packages = with pkgs; [
             cabal-install ghc haskell-language-server stack
           ];

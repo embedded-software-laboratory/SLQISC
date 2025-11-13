@@ -1,4 +1,4 @@
-name: SubleqAssembler
+name: Subleq
 version: 0.1.0.0
 github: "embedded-software-laboratory/SLQISC"
 license: BSD-3-Clause
@@ -8,7 +8,6 @@ copyright: "2024 Marcus Völker"
 
 extra-source-files:
   - README.md
-  - CHANGELOG.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -44,15 +43,24 @@ library:
   source-dirs: src
 
 executables:
-  SubleqAssembler-exe:
+  assembler:
     main: Main.hs
-    source-dirs: app
+    source-dirs: app-asm
     ghc-options:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - SubleqAssembler
+      - Subleq
+  simulator:
+    main: Main.hs
+    source-dirs: app-sim
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - Subleq
 
 tests:
   SubleqAssembler-test:
@@ -63,4 +71,4 @@ tests:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - SubleqAssembler
+      - Subleq
