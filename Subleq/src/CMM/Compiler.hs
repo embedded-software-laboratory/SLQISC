@@ -85,4 +85,5 @@ compile :: Program -> Assembly
 compile (Program ds fs) =
   let (gSec, globals) = compileGlobals ds
       fSecs = fst $ foldl (\(ss,fr) f -> let (fsec,fFr) = compileFunction fr globals f in (ss ++ [fsec],fFr)) ([],0) fs
-  in gSec : fSecs
+      rSec = Section "regs" (Just 65533) [RawDirective (DImm 65519), RawDirective (DImm 1)]
+  in gSec : rSec : fSecs

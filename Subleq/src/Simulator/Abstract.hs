@@ -1,4 +1,4 @@
-module Simulator (progFix, Const, ProgramState (..)) where
+module Simulator.Abstract (progFix, Const, ProgramState (..)) where
 
 import Data.List (nub, (\\))
 import Data.Map qualified as M

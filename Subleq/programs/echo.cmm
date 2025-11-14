@@ -1,0 +1,7 @@
+var x
+
+def main()[]
+{
+  in x;
+  out x
+}

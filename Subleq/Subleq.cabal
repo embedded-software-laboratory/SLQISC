@@ -31,7 +31,8 @@ library
       CMM.Parser
       Optimizer
       Parser
-      Simulator
+      Simulator.Abstract
+      Simulator.Concrete
   other-modules:
       Paths_Subleq
   autogen-modules:
