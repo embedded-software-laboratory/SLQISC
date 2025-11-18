@@ -1,6 +1,6 @@
 module Simulator.Concrete (runSimulator) where
 
-import Control.Monad (when)
+import Control.Monad (when,void)
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.Char
 import Data.Int (Int16)
@@ -64,14 +64,15 @@ stepDeb input _ state = do
 initialState :: [Int] -> ProgramState
 initialState prog = ProgramState {memory = M.fromList $ filter ((/= 0) . snd) $ zipWith (\i v -> (fromIntegral i, fromIntegral v)) [0 .. 65535 :: Int] prog, pc = 0}
 
-simLoopDeb :: ProgramState -> IO ()
-simLoopDeb ps = do
+simLoopDeb :: [Int16] -> ProgramState -> IO ()
+simLoopDeb traps ps = do
   ps' <-
     stepDeb
       readLn
       print
       ps
-  simLoopDeb ps'
+  when (pc ps' `elem` (traps >>= \t -> [t-2,t-1,t])) (putStrLn "TRAP" >> void getChar)
+  simLoopDeb traps ps'
 
 simLoop :: ProgramState -> IO ()
 simLoop ps = do
@@ -82,12 +83,12 @@ simLoop ps = do
       ps
   simLoop ps'
 
-runSimulator :: Bool -> [Int] -> IO ()
-runSimulator verbose prog = do
+runSimulator :: Bool -> [Int] -> [Int] -> IO ()
+runSimulator verbose traps prog = do
   let is = initialState prog
   when verbose $ print is
   if verbose
     then
-      simLoopDeb is
+      simLoopDeb (map fromIntegral traps) is
     else
       simLoop is

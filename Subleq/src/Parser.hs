@@ -20,11 +20,11 @@ calcDirective = do
   op <- oneOf "+-*"
   cWhitespace
   d2 <- directive
-  return $ case op of
-    '+' -> DSum d1 d2
-    '-' -> DDiff d1 d2
-    '*' -> DMul d1 d2
-    _ -> undefined
+  case op of
+    '+' -> return $ DSum d1 d2
+    '-' -> return $ DDiff d1 d2
+    '*' -> return $ DMul d1 d2
+    _ -> fail $ "Unknown operator " ++ [op]
 
 macroNil :: String -> Macro -> Parser Macro
 macroNil name cons = do
@@ -74,6 +74,8 @@ macro =
     <|> macroUn "PRNT" MPrint
     <|> macroUn "CALL" MCall
     <|> macroNil "RET" MRet
+    <|> macroNil "TRP" MTrap
+    <|> macroNil "BRK" MBreak
     <|> ( do
             _ <- string "STR"
             cWhitespace

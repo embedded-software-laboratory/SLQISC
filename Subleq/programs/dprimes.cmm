@@ -29,11 +29,11 @@ def isPrime(var p)
 def decPrint(var x)
   []
 {
-  trap;
+  dbreak;
   out + / x 10000 28;
   out + % / x 1000 10 28;
   out + % / x 100 10 28;
   out + % / x 10 10 28;
   out + % x 10 28;
-  trap
+  dbreak;
 }

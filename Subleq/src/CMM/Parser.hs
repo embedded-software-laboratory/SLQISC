@@ -143,6 +143,16 @@ out = do
   cWhitespace
   Out <$> expression
 
+trap :: Parser Statement
+trap = do
+  _ <- string "trap"
+  return Trap
+
+dbreak :: Parser Statement
+dbreak = do
+  _ <- string "dbreak"
+  return Break
+
 in' :: Parser Statement
 in' = do
   _ <- string "in"
@@ -154,7 +164,7 @@ in' = do
 statement :: Parser Statement
 statement = do
   cWhitespace
-  ifStatement <|> whileStatement <|> returnStatement <|> call <|> out <|> in' <|> block <|> assignment
+  ifStatement <|> whileStatement <|> returnStatement <|> call <|> trap <|> dbreak <|> out <|> in' <|> block <|> assignment
 
 function :: Parser Function
 function = do

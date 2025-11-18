@@ -15,6 +15,7 @@ import Assembly
 import Control.Arrow
 import Control.Monad
 import Data.List (elemIndex, findIndex, nub, sortOn)
+import qualified Data.List.NonEmpty as LNE
 import Data.Maybe
 import Optimizer (debugPostOptimize, postOptimize, preOptimize)
 import System.IO
@@ -23,6 +24,7 @@ import Text.Printf
 cConst :: Directive -> Maybe Int
 cConst (DImm i) = Just i
 cConst (DImmChar c) = Just (charValue c)
+cConst (DBreak x) = cConst x
 cConst _ = Nothing
 
 collectConsts :: [LDirective] -> [Int]
@@ -34,34 +36,27 @@ replaceConst' consts (DImmChar c) = DSum (DLabel "_c") $ DNumber (fromJust $ ele
 replaceConst' consts (DSum a b) = DSum (replaceConst' consts a) (replaceConst' consts b)
 replaceConst' consts (DDiff a b) = DDiff (replaceConst' consts a) (replaceConst' consts b)
 replaceConst' consts (DMul a b) = DMul (replaceConst' consts a) (replaceConst' consts b)
+replaceConst' consts (DBreak x) = DBreak (replaceConst' consts x)
 replaceConst' _ d = d
 
 replaceConst :: [Int] -> LDirective -> LDirective
 replaceConst consts (LabelledDirective l d) = LabelledDirective l (replaceConst' consts d)
 replaceConst consts (RawDirective d) = RawDirective (replaceConst' consts d)
 
-constReplace :: [Int] -> Section -> Section
+constReplace :: [Int]-> Section -> Section
 constReplace consts s = Section (sName s) (location s) (map (replaceConst consts) (directives s))
 
 constSection :: Assembly -> Assembly
 constSection a =
   let consts = nub $ a >>= (collectConsts . directives)
-      preSection = Section "__consts" Nothing (LabelledDirective "_c" (DNumber $ head consts) : map (RawDirective . DNumber) (tail consts))
-      resolved = map (constReplace consts) a
-   in if null consts then a else preSection : resolved
+      preSection c = Section { sName = "__consts", location = Nothing, directives = LabelledDirective "_c" (DNumber $ LNE.head c) : map (RawDirective . DNumber) (LNE.tail c) }
+      resolved c = map (constReplace $ LNE.toList c) a
+   in maybe a (\c -> preSection c : resolved c) (LNE.nonEmpty consts)
 
 firstFit :: [(Int, Int)] -> Int -> Int
-firstFit taken len =
-  let diffs = zipWith (\(s0, l0) (s1, _) -> s1 - (s0 + l0)) taken (tail taken)
-   in if null taken
-        then
-          0
-        else
-          if any (>= len) diffs
-            then
-              uncurry (+) $ (taken !!) $ fromJust $ findIndex (>= len) diffs
-            else
-              uncurry (+) $ last taken
+firstFit [] _ = 0
+firstFit [(s,l)] _ = s+l 
+firstFit ((s0,l0):r@((s1,_):_)) len = if len <= s1-(s0+l0) then s0+l0 else firstFit r len
 
 placeSection :: Assembly -> Section -> Section
 placeSection a s =
@@ -101,6 +96,7 @@ resolveLabel f (DLabel l) = DNumber $ f l
 resolveLabel f (DSum a b) = DSum (resolveLabel f a) (resolveLabel f b)
 resolveLabel f (DDiff a b) = DDiff (resolveLabel f a) (resolveLabel f b)
 resolveLabel f (DMul a b) = DMul (resolveLabel f a) (resolveLabel f b)
+resolveLabel f (DBreak x) = DBreak (resolveLabel f x)
 resolveLabel _ d = d
 
 resolveCur :: Int -> Directive -> Directive
@@ -108,6 +104,7 @@ resolveCur i DCur = DNumber i
 resolveCur i (DSum a b) = DSum (resolveCur i a) (resolveCur i b)
 resolveCur i (DDiff a b) = DDiff (resolveCur i a) (resolveCur i b)
 resolveCur i (DMul a b) = DMul (resolveCur i a) (resolveCur i b)
+resolveCur i (DBreak x) = DBreak (resolveCur i x)
 resolveCur _ d = d
 
 resolveLabels :: [LDirective] -> [Directive]
@@ -137,6 +134,7 @@ toInt (DDiff a b) = toInt a - toInt b
 toInt (DMul a b) = toInt a * toInt b
 toInt (DMacro _) = undefined
 toInt (DReg r) = regToInt r
+toInt (DBreak r) = toInt r
 
 toInts :: [Directive] -> [Int]
 toInts = map toInt
@@ -157,10 +155,20 @@ resolveMacros a =
       preSection = Section "__vars" Nothing (LabelledDirective "_v" 0 : replicate (vCount - 1) (RawDirective 0))
    in if vCount > 0 then preSection : newDirs else newDirs
 
-assemble :: Assembly -> [Int]
-assemble = postOptimize . toInts . resolveLabels . squash . padSections . placeSections . constSection . resolveMacros . preOptimize
+extractTraps :: [Directive] -> [Int]
+extractTraps ds = map fst $ filter (\case (_,DBreak _) -> True; _ -> False) $ zip [0..] ds
 
-debugAssemble :: String -> Assembly -> IO [Int]
+assemble :: Assembly -> ([Int],[Int])
+assemble = preOptimize
+  >>> resolveMacros
+  >>> constSection
+  >>> placeSections
+  >>> padSections
+  >>> squash
+  >>> resolveLabels
+  >>> (extractTraps &&& (toInts >>> postOptimize))
+
+debugAssemble :: String -> Assembly -> IO ([Int],[Int])
 debugAssemble f a = withFile f WriteMode $ \h -> do
   hPutStrLn h "Input: "
   hPrint h a
@@ -185,13 +193,16 @@ debugAssemble f a = withFile f WriteMode $ \h -> do
   let resolved = resolveLabels squashed
   hPutStrLn h "Resolved Labels: "
   hPrint h resolved
+  let traps = extractTraps resolved
+  hPutStrLn h "Traps: "
+  hPrint h traps
   let assembled = toInts resolved
   hPutStrLn h "Assembled: "
   hPrint h assembled
   postOptimized <- debugPostOptimize assembled
   hPutStrLn h "Post-Optimized: "
   hPrint h postOptimized
-  return postOptimized
+  return (traps,postOptimized)
 
 outputLogisim :: String -> [Int] -> IO ()
 outputLogisim f dat = withFile f WriteMode $ \h -> do

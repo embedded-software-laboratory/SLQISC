@@ -50,6 +50,8 @@ data Macro
   | MString String
   | MCall Directive
   | MRet
+  | MTrap
+  | MBreak
   deriving (Eq)
 
 cur :: Directive
@@ -224,6 +226,8 @@ implem loc pc (MCall a) =
 implem loc pc MRet =
   let (p, c) = implem loc pc (MPop (pc + offset p + 2))
    in (p ++ [DImm 0, DImm 0, DNumber 0], c)
+implem _ _ MTrap = ([DImm 0, DImm 0, DBreak (DDiff DCur 2)],0)
+implem _ _ MBreak = ([DImm 0, DImm 0, DBreak (DSum DCur 1)],0)
 
 implemList :: (Int -> Directive) -> Directive -> [Macro] -> ([Directive], Int)
 implemList loc pc = snd . foldl (\(pc', (r, cr)) m -> let (ds, cs) = implem loc pc' m in (pc' + DNumber (length ds), (r ++ ds, max cs cr))) (pc, ([], 0))
@@ -256,6 +260,8 @@ instance Show Macro where
   show (MString a) = "STR " ++ show a
   show (MCall a) = "CALL " ++ show a
   show MRet = "RET"
+  show MTrap = "TRP"
+  show MBreak = "BRK"
 
 nobranch :: Directive -> Directive -> [Directive]
 nobranch a b = [a, b, DCur + 1]
@@ -280,6 +286,7 @@ data Directive
   | DMul Directive Directive
   | DMacro Macro
   | DReg Reg
+  | DBreak Directive
   deriving (Eq)
 
 instance Show Directive where
@@ -294,6 +301,7 @@ instance Show Directive where
   show (DMul a b) = "(" ++ show a ++ " * " ++ show b ++ ")"
   show (DMacro m) = show m
   show (DReg m) = "$" ++ show m
+  show (DBreak m) = "B" ++ show m
 
 instance Num Directive where
   (+) = DSum

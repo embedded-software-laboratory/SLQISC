@@ -3,13 +3,14 @@ module CMM.Compiler (compile) where
 import CMM.Language
 import Assembly
 import Data.Map.Strict qualified as M
+import Data.List
 
 compileGlobals :: [Declaration] -> (Section,M.Map String Directive)
 compileGlobals ds =
   let glabel = DLabel "__globals"
       gDirs = M.fromList $ zipWith (\i (Declaration v) -> (v, glabel + fromInteger i)) [0..] ds
-      gSec = Section "__globals" Nothing $ LabelledDirective "__globals" (DNumber 0) : replicate (length ds - 1) (RawDirective (DNumber 0))
-  in if null ds then (Section "__globals" Nothing [], M.empty) else (gSec, gDirs)
+      gSec = Section { sName = "__globals", location = Nothing, directives = LabelledDirective "__globals" (DNumber 0) : replicate (length ds - 1) (RawDirective (DNumber 0))}
+  in if null ds then (Section { sName = "__globals", location = Nothing, directives = [] }, M.empty) else (gSec, gDirs)
 
 expRegister :: Int -> Directive
 expRegister i = DReg $ RGPR (i+16)
@@ -17,7 +18,7 @@ expRegister i = DReg $ RGPR (i+16)
 compileUnary :: Int -> UOp -> [Directive]
 compileUnary i Neg = [DMacro $ MNeg (expRegister i)]
 compileUnary i Not = [DMacro $ MNot (expRegister i)]
-compileUnary _ _ = undefined
+compileUnary _ _ = error "Not Implemented!"
 
 compileBinary :: Int -> BOp -> [Directive]
 compileBinary i Add = [DMacro $ MAdd (expRegister i) (expRegister (i+1))]
@@ -28,7 +29,11 @@ compileBinary i Mod = [DMacro $ MMod (expRegister i) (expRegister (i+1))]
 compileBinary i And = [DMacro $ MAnd (expRegister i) (expRegister (i+1))]
 compileBinary i Or = [DMacro $ MOr (expRegister i) (expRegister (i+1))]
 compileBinary i Gt = [DMacro $ MSub (expRegister i) (expRegister (i+1)), DMacro $ MDiv (expRegister i) (expRegister i)]
+compileBinary i Le = [DMacro $ MSub (expRegister i) (expRegister (i+1)), DMacro $ MDiv (expRegister i) (expRegister i), DMacro $ MNot (expRegister i)]
 compileBinary i Neq = [DMacro $ MSub (expRegister i) (expRegister (i+1)), DMacro $ MMul (expRegister i) (expRegister i), DMacro $ MDiv (expRegister i) (expRegister i)]
+compileBinary i Eq = [DMacro $ MSub (expRegister i) (expRegister (i+1)), DMacro $ MMul (expRegister i) (expRegister i), DMacro $ MDiv (expRegister i) (expRegister i), DMacro $ MNot (expRegister i)]
+compileBinary i Lt = [DMacro $ MSub (expRegister (i+1)) (expRegister i), DMacro $ MDiv (expRegister (i+1)) (expRegister (i+1)), DMacro $ MMov (expRegister i) (expRegister (i+1))]
+compileBinary i Ge = [DMacro $ MSub (expRegister (i+1)) (expRegister i), DMacro $ MDiv (expRegister (i+1)) (expRegister (i+1)), DMacro $ MMov (expRegister i) (expRegister (i+1)), DMacro $ MNot (expRegister i)]
 
 compileExpression' :: M.Map String Directive -> Int -> Expression -> [Directive]
 compileExpression' _ i (Literal z) = [DMacro $ MMov (expRegister i) (DImm z)]
@@ -56,11 +61,15 @@ compileStatement free allocs (While e s) =
       in (dirs,f+1)
 compileStatement free allocs (Return e) = (map RawDirective (compileExpression allocs e) ++ [RawDirective (DMacro (MMov (DReg (RGPR 0)) (expRegister 0))),RawDirective (DMacro MRet)],free)
 compileStatement free allocs (Block ss) =
-  let (dirs,f) = foldl (\(ds,fr) s -> let (sDs,sFr) = compileStatement fr allocs s in (ds ++ sDs,sFr)) ([],free) ss
+  let (dirs,f) = foldl' (\(ds,fr) s -> let (sDs,sFr) = compileStatement fr allocs s in (ds ++ sDs,sFr)) ([],free) ss
   in (dirs,f)
 compileStatement free allocs (Call t n es) =
   let eDirs = concat $ zipWith (\i e -> map RawDirective (compileExpression allocs e) ++ [RawDirective (DMacro $ MMov (DReg $ RGPR (i+4)) (expRegister 0))]) [0..] es
   in (eDirs ++ [RawDirective (DMacro $ MCall (DLabel n)),RawDirective (DMacro $ MMov (allocs M.! t) (DReg $ RGPR 0))],free)
+compileStatement free _ Trap =
+  ([RawDirective (DMacro MTrap)],free)
+compileStatement free _ Break =
+  ([RawDirective (DMacro MBreak)],free)
 compileStatement free allocs (Out e) =
   let eDirs = map RawDirective $ compileExpression allocs e
   in (eDirs ++ [RawDirective (DMacro $ MOut (expRegister 0))],free)
@@ -78,12 +87,12 @@ compileFunction free globals (Function n params locals body) =
       entry = map RawDirective $ zipWith (((\i -> DMacro (MPush (DReg (RGPR (i + 8))))).) . const) [0..] locals
       exit = map RawDirective $ reverse $ zipWith (((\i -> DMacro (MPop (DReg (RGPR (i + 8))))).) . const) [0..] locals
       loc = if n == "main" then Just 0 else Nothing
-      fSec = Section n loc (LabelledDirective n (DMacro MNop) : if n == "main" then cBody else entry ++ cBody ++ exit)
+      fSec = Section n loc (LabelledDirective n (DMacro MNop) : if n == "main" then cBody else entry ++ cBody ++ exit ++ [RawDirective $ DMacro MRet])
   in (fSec,fB)
 
 compile :: Program -> Assembly
 compile (Program ds fs) =
   let (gSec, globals) = compileGlobals ds
-      fSecs = fst $ foldl (\(ss,fr) f -> let (fsec,fFr) = compileFunction fr globals f in (ss ++ [fsec],fFr)) ([],0) fs
-      rSec = Section "regs" (Just 65533) [RawDirective (DImm 65519), RawDirective (DImm 1)]
+      fSecs = fst $ foldl' (\(ss,fr) f -> let (fsec,fFr) = compileFunction fr globals f in (ss ++ [fsec],fFr)) ([],0) fs
+      rSec = Section "regs" (Just 65533) [RawDirective (DNumber 65519), RawDirective (DNumber 1)]
   in gSec : rSec : fSecs
