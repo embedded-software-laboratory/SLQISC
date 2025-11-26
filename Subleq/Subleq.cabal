@@ -29,12 +29,13 @@ library
       CMM.Compiler
       CMM.Language
       CMM.Parser
-      Optimizer
       Parser
       Simulator.Abstract
       Simulator.Concrete
   other-modules:
       Paths_Subleq
+      Util.List
+      Optimizer
   autogen-modules:
       Paths_Subleq
   hs-source-dirs:

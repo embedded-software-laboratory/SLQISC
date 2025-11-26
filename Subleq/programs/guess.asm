@@ -71,7 +71,7 @@ low:
   MOV curGuess $0
   JMP loop
 trap:
-  JMP trap
+  TRP
 
 SECTION vars
   curGuess: 5000

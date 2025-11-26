@@ -1,25 +1,30 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Assembler (assemble, debugAssemble, outputLogisim, outputMif) where
+module Assembler (assemble, debugAssemble, disassemble, outputLogisim, outputMif) where
 
 import Assembly
   ( Assembly,
     Directive (..),
     LDirective (..),
+    Macro (..),
     Reg (..),
     Section (..),
     charValue,
     implem,
     sectionSize,
   )
-import Control.Arrow
-import Control.Monad
-import Data.List (elemIndex, findIndex, nub, sortOn)
-import qualified Data.List.NonEmpty as LNE
-import Data.Maybe
+import Control.Arrow (Arrow (first, (&&&)), (>>>))
+import Control.Monad (guard, when)
+import Data.Int (Int16)
+import Data.List (elemIndex, findIndex, sortOn)
+import Data.List.NonEmpty qualified as LNE
+import Data.Map qualified as M
+import Data.Maybe (fromJust, fromMaybe, isNothing, listToMaybe, mapMaybe, maybeToList)
+import Data.Set qualified as S
 import Optimizer (debugPostOptimize, postOptimize, preOptimize)
-import System.IO
-import Text.Printf
+import System.IO (IOMode (WriteMode), hPrint, hPutStrLn, withFile)
+import Text.Printf (printf)
+import Util.List
 
 cConst :: Directive -> Maybe Int
 cConst (DImm i) = Just i
@@ -27,12 +32,12 @@ cConst (DImmChar c) = Just (charValue c)
 cConst (DBreak x) = cConst x
 cConst _ = Nothing
 
-collectConsts :: [LDirective] -> [Int]
-collectConsts l = l >>= (\case LabelledDirective _ d -> maybeToList $ cConst d; RawDirective d -> maybeToList $ cConst d)
+collectConsts :: [LDirective] -> S.Set Int
+collectConsts l = S.fromList $ l >>= (\case LabelledDirective _ d -> maybeToList $ cConst d; RawDirective d -> maybeToList $ cConst d)
 
 replaceConst' :: [Int] -> Directive -> Directive
-replaceConst' consts (DImm i) = DSum (DLabel "_c") $ DNumber (fromJust $ elemIndex i consts)
-replaceConst' consts (DImmChar c) = DSum (DLabel "_c") $ DNumber (fromJust $ elemIndex (charValue c) consts)
+replaceConst' consts (DImm i) = DSum (DLabel "_c") $ DNumber (fromMaybe 0 $ elemIndex i consts)
+replaceConst' consts (DImmChar c) = DSum (DLabel "_c") $ DNumber (fromMaybe 0 $ elemIndex (charValue c) consts)
 replaceConst' consts (DSum a b) = DSum (replaceConst' consts a) (replaceConst' consts b)
 replaceConst' consts (DDiff a b) = DDiff (replaceConst' consts a) (replaceConst' consts b)
 replaceConst' consts (DMul a b) = DMul (replaceConst' consts a) (replaceConst' consts b)
@@ -43,20 +48,20 @@ replaceConst :: [Int] -> LDirective -> LDirective
 replaceConst consts (LabelledDirective l d) = LabelledDirective l (replaceConst' consts d)
 replaceConst consts (RawDirective d) = RawDirective (replaceConst' consts d)
 
-constReplace :: [Int]-> Section -> Section
+constReplace :: [Int] -> Section -> Section
 constReplace consts s = Section (sName s) (location s) (map (replaceConst consts) (directives s))
 
 constSection :: Assembly -> Assembly
 constSection a =
-  let consts = nub $ a >>= (collectConsts . directives)
-      preSection c = Section { sName = "__consts", location = Nothing, directives = LabelledDirective "_c" (DNumber $ LNE.head c) : map (RawDirective . DNumber) (LNE.tail c) }
+  let consts = S.unions $ map (collectConsts . directives) a
+      preSection c = Section {sName = "__consts", location = Nothing, directives = LabelledDirective "_c" (DNumber $ LNE.head c) : map (RawDirective . DNumber) (LNE.tail c)}
       resolved c = map (constReplace $ LNE.toList c) a
-   in maybe a (\c -> preSection c : resolved c) (LNE.nonEmpty consts)
+   in maybe a (\c -> preSection c : resolved c) (LNE.nonEmpty $ S.toList consts)
 
 firstFit :: [(Int, Int)] -> Int -> Int
 firstFit [] _ = 0
-firstFit [(s,l)] _ = s+l 
-firstFit ((s0,l0):r@((s1,_):_)) len = if len <= s1-(s0+l0) then s0+l0 else firstFit r len
+firstFit [(s, l)] _ = s + l
+firstFit ((s0, l0) : r@((s1, _) : _)) len = if len <= s1 - (s0 + l0) then s0 + l0 else firstFit r len
 
 placeSection :: Assembly -> Section -> Section
 placeSection a s =
@@ -72,27 +77,24 @@ replace _ _ _ = []
 placeSections :: Assembly -> Assembly
 placeSections a =
   let i = findIndex (isNothing . location) a
-   in if isNothing i
-        then
-          a
-        else
-          placeSections (replace (placeSection a) (fromJust i) a)
+   in maybe a (\i' -> placeSections (replace (placeSection a) i' a)) i
 
 padSections :: Assembly -> Assembly
-padSections a =
-  let a' = sortOn (fromJust . location) a
-   in head a' : concat (zipWith (\l r -> [let s = (+ length (directives l)) <$> location l in Section "pad" s (replicate (fromJust (location r) - fromJust s) (RawDirective 0)), r]) a' (tail a'))
+padSections [] = []
+padSections a@(_ : _) =
+  let a' = sortOn location a
+   in case a' of [] -> []; (s0 : sr) -> s0 : concat (zipWith (\l r -> [let s = (+ length (directives l)) <$> location l in Section {sName = "pad", location = s, directives = replicate (fromJust (location r) - fromJust s) (RawDirective 0)}, r]) (s0 : sr) sr)
 
 squash :: Assembly -> [LDirective]
 squash a =
-  let a' = sortOn (fromJust . location) a
+  let a' = sortOn location a
    in a' >>= directives
 
-findLabel :: [LDirective] -> String -> Int
-findLabel l s = fromJust $ elemIndex (Just s) $ map (\case LabelledDirective ll _ -> Just ll; _ -> Nothing) l
+findLabel :: [LDirective] -> String -> Maybe Int
+findLabel l s = elemIndex (Just s) $ map (\case LabelledDirective ll _ -> Just ll; _ -> Nothing) l
 
-resolveLabel :: (String -> Int) -> Directive -> Directive
-resolveLabel f (DLabel l) = DNumber $ f l
+resolveLabel :: (String -> Maybe Int) -> Directive -> Directive
+resolveLabel f (DLabel l) = maybe 0 DNumber $ f l
 resolveLabel f (DSum a b) = DSum (resolveLabel f a) (resolveLabel f b)
 resolveLabel f (DDiff a b) = DDiff (resolveLabel f a) (resolveLabel f b)
 resolveLabel f (DMul a b) = DMul (resolveLabel f a) (resolveLabel f b)
@@ -101,9 +103,9 @@ resolveLabel _ d = d
 
 resolveCur :: Int -> Directive -> Directive
 resolveCur i DCur = DNumber i
-resolveCur i (DSum a b) = DSum (resolveCur i a) (resolveCur i b)
-resolveCur i (DDiff a b) = DDiff (resolveCur i a) (resolveCur i b)
-resolveCur i (DMul a b) = DMul (resolveCur i a) (resolveCur i b)
+resolveCur i (DSum a b) = resolveCur i a + resolveCur i b
+resolveCur i (DDiff a b) = resolveCur i a - resolveCur i b
+resolveCur i (DMul a b) = resolveCur i a * resolveCur i b
 resolveCur i (DBreak x) = DBreak (resolveCur i x)
 resolveCur _ d = d
 
@@ -122,53 +124,54 @@ regToInt RIn = -2
 regToInt RSP = -3
 regToInt (RGPR i) = -(i + 17)
 
-toInt :: Directive -> Int
-toInt (DNumber i) = i
-toInt (DImm _) = undefined
-toInt (DChar c) = charValue c
-toInt (DImmChar _) = undefined
-toInt (DLabel _) = undefined
-toInt DCur = undefined
-toInt (DSum a b) = toInt a + toInt b
-toInt (DDiff a b) = toInt a - toInt b
-toInt (DMul a b) = toInt a * toInt b
-toInt (DMacro _) = undefined
-toInt (DReg r) = regToInt r
+toInt :: Directive -> Maybe Int
+toInt (DNumber i) = return i
+toInt (DImm _) = Nothing
+toInt (DChar c) = return $ charValue c
+toInt (DImmChar _) = Nothing
+toInt (DLabel _) = Nothing
+toInt DCur = Nothing
+toInt (DSum a b) = (+) <$> toInt a <*> toInt b
+toInt (DDiff a b) = (-) <$> toInt a <*> toInt b
+toInt (DMul a b) = (*) <$> toInt a <*> toInt b
+toInt (DMacro _) = Nothing
+toInt (DReg r) = return $ regToInt r
 toInt (DBreak r) = toInt r
 
 toInts :: [Directive] -> [Int]
-toInts = map toInt
+toInts = mapMaybe toInt
 
 resolveMacrosD' :: Directive -> Directive -> ([Directive], Int)
 resolveMacrosD' pc (DMacro m) = implem ((DLabel "_v" +) . DNumber) pc m
 resolveMacrosD' _ d = ([d], 0)
 
 resolveMacrosD :: String -> LDirective -> ([LDirective], Int)
-resolveMacrosD _ (LabelledDirective l d) = first (\case (x : xs) -> LabelledDirective l x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel l) d)
-resolveMacrosD free (RawDirective d) = first (\case (x : xs) -> LabelledDirective free x : map RawDirective xs; _ -> []) (resolveMacrosD' (DLabel free) d)
+resolveMacrosD _ (LabelledDirective l d) = first (\case (x : xs) -> LabelledDirective l x : map RawDirective xs; [] -> []) (resolveMacrosD' (DLabel l) d)
+resolveMacrosD free (RawDirective d) = first (\case (x : xs) -> LabelledDirective free x : map RawDirective xs; [] -> []) (resolveMacrosD' (DLabel free) d)
 
 resolveMacros :: Assembly -> Assembly
 resolveMacros a =
   let resolved s = zipWith (\i -> resolveMacrosD ("_" ++ sName s ++ show i)) [0 :: Int ..] (directives s)
       newDirs = map (\s -> s {directives = resolved s >>= fst}) a
-      vCount = maximum $ a >>= (map snd . resolved)
-      preSection = Section "__vars" Nothing (LabelledDirective "_v" 0 : replicate (vCount - 1) (RawDirective 0))
+      vCount = safeMaximum 0 $ a >>= (map snd . resolved)
+      preSection = Section {sName = "__vars", location = Nothing, directives = LabelledDirective "_v" 0 : replicate (vCount - 1) (RawDirective 0)}
    in if vCount > 0 then preSection : newDirs else newDirs
 
 extractTraps :: [Directive] -> [Int]
-extractTraps ds = map fst $ filter (\case (_,DBreak _) -> True; _ -> False) $ zip [0..] ds
+extractTraps ds = map fst $ filter (\case (_, DBreak _) -> True; _nonbreak -> False) $ zip [0 ..] ds
 
-assemble :: Assembly -> ([Int],[Int])
-assemble = preOptimize
-  >>> resolveMacros
-  >>> constSection
-  >>> placeSections
-  >>> padSections
-  >>> squash
-  >>> resolveLabels
-  >>> (extractTraps &&& (toInts >>> postOptimize))
+assemble :: Assembly -> ([Int], [Int])
+assemble =
+  preOptimize
+    >>> resolveMacros
+    >>> constSection
+    >>> placeSections
+    >>> padSections
+    >>> squash
+    >>> resolveLabels
+    >>> (extractTraps &&& (toInts >>> postOptimize))
 
-debugAssemble :: String -> Assembly -> IO ([Int],[Int])
+debugAssemble :: String -> Assembly -> IO ([Int], [Int])
 debugAssemble f a = withFile f WriteMode $ \h -> do
   hPutStrLn h "Input: "
   hPrint h a
@@ -202,7 +205,7 @@ debugAssemble f a = withFile f WriteMode $ \h -> do
   postOptimized <- debugPostOptimize assembled
   hPutStrLn h "Post-Optimized: "
   hPrint h postOptimized
-  return (traps,postOptimized)
+  return (traps, postOptimized)
 
 outputLogisim :: String -> [Int] -> IO ()
 outputLogisim f dat = withFile f WriteMode $ \h -> do
@@ -224,3 +227,74 @@ outputMif f dat = withFile f WriteMode $ \h -> do
   when (length dat == 65535) $
     hPutStrLn h "  ffff: XXXX;"
   hPutStrLn h "END;"
+
+type DisAssGuess = Int16 -> M.Map Int16 Int16 -> Maybe (Maybe Int16, Macro)
+
+guessTrap :: DisAssGuess
+guessTrap pc memoryMap = do
+  let a = fromMaybe 0 $ M.lookup pc memoryMap
+  let b = fromMaybe 0 $ M.lookup (pc + 1) memoryMap
+  let c = fromMaybe 0 $ M.lookup (pc + 2) memoryMap
+  guard (a == b && c == pc)
+  return (Nothing, MTrap)
+
+guessMov :: DisAssGuess
+guessMov pc memoryMap = do
+  let [a0,a1,a2,b0,b1,b2,c0,c1,c2,d0,d1,d2] = map (\d -> fromMaybe 0 $ M.lookup (pc+d) memoryMap) [0..11]
+  guard (a0 == a1 && a0 == c1 && b1 == c0 && b1 == d0 && b1 == d1
+        && a2 == pc+3 && b2 == pc+6 && c2 == pc+9 && d2 == pc+12)
+  return (Just (pc+12), MMov (DNumber $ fromIntegral a0) (DNumber $ fromIntegral b0))
+
+guessAdd :: DisAssGuess
+guessAdd pc memoryMap = do
+  let [a0,a1,a2,b0,b1,b2,c0,c1,c2] = map (\d -> fromMaybe 0 $ M.lookup (pc+d) memoryMap) [0..8]
+  guard (a1 == b0 && a1 == c0 && a1 == c1
+        && a2 == pc+3 && b2 == pc+6 && c2 == pc+9)
+  return (Just (pc+9), MMov (DNumber $ fromIntegral b1) (DNumber $ fromIntegral a0))
+
+guessSub :: DisAssGuess
+guessSub pc memoryMap = do
+  let [a0,a1,a2] = map (\d -> fromMaybe 0 $ M.lookup (pc+d) memoryMap) [0..2]
+  guard (a2 == pc+3)
+  return (Just (pc+3), MSub (DNumber $ fromIntegral a1) (DNumber $ fromIntegral a0))
+
+guessOut :: DisAssGuess
+guessOut pc memoryMap = do
+  let [a0,a1,a2] = map (\d -> fromMaybe 0 $ M.lookup (pc+d) memoryMap) [0..2]
+  guard (a1 == -1 && a2 == pc+3)
+  return (Just (pc+3), MOut (DNumber $ fromIntegral a0))
+
+guessInstruction :: Int16 -> M.Map Int16 Int16 -> (Maybe Int16, Macro)
+guessInstruction pc memoryMap =
+  let guesses = [guessTrap, guessMov, guessAdd, guessOut, guessSub]
+      a = DNumber $ fromIntegral $ fromMaybe 0 $ M.lookup pc memoryMap
+      b = DNumber $ fromIntegral $ fromMaybe 0 $ M.lookup (pc + 1) memoryMap
+      cVal = fromMaybe 0 $ M.lookup (pc + 2) memoryMap
+      c = DNumber $ fromIntegral cVal
+   in fromMaybe (Just (pc + 3), MSLQ a b c) $ listToMaybe (mapMaybe (\g -> g pc memoryMap) guesses)
+
+siStep :: M.Map Int16 Int16 -> (Maybe Int16, [Macro]) -> (Maybe Int16, [Macro])
+siStep _ (Nothing, res) = (Nothing, res)
+siStep memoryMap (Just pc, res)
+  | let a = fromMaybe 0 $ M.lookup pc memoryMap
+        b = fromMaybe 0 $ M.lookup (pc + 1) memoryMap
+        c = fromMaybe 0 $ M.lookup (pc + 2) memoryMap
+     in a == 0 && b == 0 && c == 0 =
+      (Nothing, res)
+siStep memoryMap (Just pc, res) =
+  let (next, m) = guessInstruction pc memoryMap
+      res' = res ++ [m]
+   in (next, res')
+
+siFix :: Int16 -> M.Map Int16 Int16 -> (Maybe Int16, [Macro]) -> [Macro]
+siFix _ _ (Nothing, m) = m
+siFix pc memoryMap state =
+  let (o, res) = siStep memoryMap state
+      open' = o >>= (\x -> guard (x > pc) >> return x)
+   in siFix pc memoryMap (open', res)
+
+saturateInstructions :: Int16 -> M.Map Int16 Int16 -> [Macro]
+saturateInstructions pc memoryMap = siFix pc memoryMap (Just pc, [])
+
+disassemble :: Int16 -> M.Map Int16 Int16 -> Assembly
+disassemble pc memoryMap = [Section {sName = "da" ++ show pc, location = Just $ fromIntegral pc, directives = map (RawDirective . DMacro) $ saturateInstructions pc memoryMap}]

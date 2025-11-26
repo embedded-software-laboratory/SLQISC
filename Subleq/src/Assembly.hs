@@ -26,10 +26,10 @@ data Macro
   = MSLQ Directive Directive Directive
   | MNop
   | MMov Directive Directive
-  | MSTI Directive Directive
-  | MLDI Directive Directive
-  | MPush Directive
-  | MPop Directive
+  | MSTI ~Directive ~Directive
+  | MLDI ~Directive ~Directive
+  | MPush ~Directive
+  | MPop ~Directive
   | MAdd Directive Directive
   | MSub Directive Directive
   | MMul Directive Directive
@@ -39,8 +39,8 @@ data Macro
   | MAnd Directive Directive
   | MOr Directive Directive
   | MNot Directive
-  | MJmp Directive
-  | MJLeq Directive Directive
+  | MJmp ~Directive
+  | MJLeq ~Directive ~Directive
   | MInc Directive
   | MDec Directive
   | MIn Directive
@@ -226,8 +226,8 @@ implem loc pc (MCall a) =
 implem loc pc MRet =
   let (p, c) = implem loc pc (MPop (pc + offset p + 2))
    in (p ++ [DImm 0, DImm 0, DNumber 0], c)
-implem _ _ MTrap = ([DImm 0, DImm 0, DBreak (DDiff DCur 2)],0)
-implem _ _ MBreak = ([DImm 0, DImm 0, DBreak (DSum DCur 1)],0)
+implem _ _ MTrap = ([DImm 0, DImm 0, DBreak (DCur - 2)],0)
+implem _ _ MBreak = ([DImm 0, DImm 0, DBreak (DCur + 1)],0)
 
 implemList :: (Int -> Directive) -> Directive -> [Macro] -> ([Directive], Int)
 implemList loc pc = snd . foldl (\(pc', (r, cr)) m -> let (ds, cs) = implem loc pc' m in (pc' + DNumber (length ds), (r ++ ds, max cs cr))) (pc, ([], 0))
@@ -307,8 +307,8 @@ instance Num Directive where
   (+) = DSum
   (-) = DDiff
   (*) = DMul
-  abs = undefined
-  signum = undefined
+  abs = error "not supported" 
+  signum = error "not supported"
   fromInteger = DNumber . fromInteger
 
 data LDirective = LabelledDirective String Directive | RawDirective Directive

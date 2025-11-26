@@ -85,7 +85,7 @@ compileFunction :: Int -> M.Map String Directive -> Function -> (Section,Int)
 compileFunction free globals (Function n params locals body) =
   let (cBody,fB) = compileStatement free (functionAllocations globals params locals) body
       entry = map RawDirective $ zipWith (((\i -> DMacro (MPush (DReg (RGPR (i + 8))))).) . const) [0..] locals
-      exit = map RawDirective $ reverse $ zipWith (((\i -> DMacro (MPop (DReg (RGPR (i + 8))))).) . const) [0..] locals
+      exit = map RawDirective $ reverse (zipWith (((\i -> DMacro (MPop (DReg (RGPR (i + 8))))).) . const) [0..] locals) ++ [DMacro MTrap | n == "main"]
       loc = if n == "main" then Just 0 else Nothing
       fSec = Section n loc (LabelledDirective n (DMacro MNop) : if n == "main" then cBody else entry ++ cBody ++ exit ++ [RawDirective $ DMacro MRet])
   in (fSec,fB)

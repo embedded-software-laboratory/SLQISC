@@ -21,9 +21,9 @@ calcDirective = do
   cWhitespace
   d2 <- directive
   case op of
-    '+' -> return $ DSum d1 d2
-    '-' -> return $ DDiff d1 d2
-    '*' -> return $ DMul d1 d2
+    '+' -> return $ d1 + d2
+    '-' -> return $ d1 - d2
+    '*' -> return $ d1 * d2
     _ -> fail $ "Unknown operator " ++ [op]
 
 macroNil :: String -> Macro -> Parser Macro

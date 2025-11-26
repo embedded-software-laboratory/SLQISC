@@ -34,11 +34,12 @@ variable = do
 uop :: Parser UOp
 uop = do
   op <- string "~" <|> string "!" <|> string "^" <|> string "&"
-  return $ case op of
-    "~" -> Neg
-    "!" -> Not
-    "^" -> Deref
-    "&" -> Addr
+  case op of
+    "~" -> return Neg
+    "!" -> return Not
+    "^" -> return Deref
+    "&" -> return Addr
+    _ -> fail "Internal Error!"
 
 unary :: Parser Expression
 unary = do
@@ -48,20 +49,21 @@ unary = do
 bop :: Parser BOp
 bop = do
   op <- string "+" <|> string "-" <|> string "*" <|> string "/=" <|> string "/" <|> string "%" <|> string "&&" <|> string "||" <|> string "=="<|> string "<=" <|> string ">=" <|> string "<" <|> string ">"
-  return $ case op of
-    "+" -> Add
-    "-" -> Sub
-    "*" -> Mul
-    "/" -> Div
-    "%" -> Mod
-    "&&" -> And
-    "||" -> Or
-    "==" -> Eq
-    "/=" -> Neq
-    "<" -> Lt
-    ">" -> Gt
-    "<=" -> Le
-    ">=" -> Ge
+  case op of
+    "+" -> return Add
+    "-" -> return Sub
+    "*" -> return Mul
+    "/" -> return Div
+    "%" -> return Mod
+    "&&" -> return And
+    "||" -> return Or
+    "==" -> return Eq
+    "/=" -> return Neq
+    "<" -> return Lt
+    ">" -> return Gt
+    "<=" -> return Le
+    ">=" -> return Ge
+    _ -> fail "Internal Error!"
 
 binary :: Parser Expression
 binary = do
