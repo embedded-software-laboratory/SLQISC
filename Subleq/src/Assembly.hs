@@ -307,7 +307,7 @@ instance Num Directive where
   (+) = DSum
   (-) = DDiff
   (*) = DMul
-  abs = error "not supported" 
+  abs = error "not supported"
   signum = error "not supported"
   fromInteger = DNumber . fromInteger
 

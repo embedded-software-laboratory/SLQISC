@@ -438,7 +438,7 @@ pll pll(
     .c1(clk_25)
 );
 
-vga_lcd vga(
+/*vga_lcd vga(
   .clk_25(clk_25),
   .clk_50(MAX10_CLK1_50),
   .inval(SW[7:0]),
@@ -454,7 +454,20 @@ vga_lcd vga(
   .VGA_B(VGA_B),
   .VGA_HS(VGA_HS),
   .VGA_VS(VGA_VS)
-);  
+); */
+
+vga_img vga(
+  .clk_25(clk_25),
+  .clk_50(MAX10_CLK1_50),
+  .addInput(triggerOutput),
+  .rgbCode(last_out[11:0]),
+  .reset(reset),
+  .VGA_R(VGA_R),
+  .VGA_G(VGA_G),
+  .VGA_B(VGA_B),
+  .VGA_HS(VGA_HS),
+  .VGA_VS(VGA_VS)
+);
 
 program_rom program_rom(
   .clk(MAX10_CLK1_50),

@@ -239,30 +239,50 @@ guessTrap pc memoryMap = do
   return (Nothing, MTrap)
 
 guessMov :: DisAssGuess
-guessMov pc memoryMap = do
-  let [a0,a1,a2,b0,b1,b2,c0,c1,c2,d0,d1,d2] = map (\d -> fromMaybe 0 $ M.lookup (pc+d) memoryMap) [0..11]
-  guard (a0 == a1 && a0 == c1 && b1 == c0 && b1 == d0 && b1 == d1
-        && a2 == pc+3 && b2 == pc+6 && c2 == pc+9 && d2 == pc+12)
-  return (Just (pc+12), MMov (DNumber $ fromIntegral a0) (DNumber $ fromIntegral b0))
+guessMov pc memoryMap =
+  case map (\d -> fromMaybe 0 $ M.lookup (pc + d) memoryMap) [0 .. 11] of
+    [a0, a1, a2, b0, b1, b2, c0, c1, c2, d0, d1, d2] -> do
+      guard
+        ( a0 == a1 && a0 == c1
+            && b1 == c0 && b1 == d0 && b1 == d1
+            && a2 == pc + 3
+            && b2 == pc + 6
+            && c2 == pc + 9
+            && d2 == pc + 12
+        )
+      return (Just (pc + 12), MMov (DNumber $ fromIntegral a0) (DNumber $ fromIntegral b0))
+    _ie -> Nothing
 
 guessAdd :: DisAssGuess
-guessAdd pc memoryMap = do
-  let [a0,a1,a2,b0,b1,b2,c0,c1,c2] = map (\d -> fromMaybe 0 $ M.lookup (pc+d) memoryMap) [0..8]
-  guard (a1 == b0 && a1 == c0 && a1 == c1
-        && a2 == pc+3 && b2 == pc+6 && c2 == pc+9)
-  return (Just (pc+9), MMov (DNumber $ fromIntegral b1) (DNumber $ fromIntegral a0))
+guessAdd pc memoryMap =
+  case map (\d -> fromMaybe 0 $ M.lookup (pc + d) memoryMap) [0 .. 8] of
+    [a0, a1, a2, b0, b1, b2, c0, c1, c2] -> do
+      guard
+        ( a1 == b0
+            && a1 == c0
+            && a1 == c1
+            && a2 == pc + 3
+            && b2 == pc + 6
+            && c2 == pc + 9
+        )
+      return (Just (pc + 9), MMov (DNumber $ fromIntegral b1) (DNumber $ fromIntegral a0))
+    _ie -> Nothing
 
 guessSub :: DisAssGuess
-guessSub pc memoryMap = do
-  let [a0,a1,a2] = map (\d -> fromMaybe 0 $ M.lookup (pc+d) memoryMap) [0..2]
-  guard (a2 == pc+3)
-  return (Just (pc+3), MSub (DNumber $ fromIntegral a1) (DNumber $ fromIntegral a0))
+guessSub pc memoryMap =
+  case map (\d -> fromMaybe 0 $ M.lookup (pc + d) memoryMap) [0 .. 2] of
+    [a0, a1, a2] -> do
+      guard (a2 == pc + 3)
+      return (Just (pc + 3), MSub (DNumber $ fromIntegral a1) (DNumber $ fromIntegral a0))
+    _ie -> Nothing
 
 guessOut :: DisAssGuess
 guessOut pc memoryMap = do
-  let [a0,a1,a2] = map (\d -> fromMaybe 0 $ M.lookup (pc+d) memoryMap) [0..2]
-  guard (a1 == -1 && a2 == pc+3)
-  return (Just (pc+3), MOut (DNumber $ fromIntegral a0))
+  case map (\d -> fromMaybe 0 $ M.lookup (pc + d) memoryMap) [0 .. 2] of
+    [a0, a1, a2] -> do
+      guard (a1 == -1 && a2 == pc + 3)
+      return (Just (pc + 3), MOut (DNumber $ fromIntegral a0))
+    _ie -> Nothing
 
 guessInstruction :: Int16 -> M.Map Int16 Int16 -> (Maybe Int16, Macro)
 guessInstruction pc memoryMap =
