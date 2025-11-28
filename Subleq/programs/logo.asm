@@ -1,6 +1,6 @@
 SECTION main[@0]
 loop:
-  MOV $0 logo
+  MOV $0 start
   ADD $0 offset
   LDI $1 $0
   OUT $1
@@ -10,6 +10,7 @@ loop:
 
 SECTION vars
 offset: 0
+start: logo
 
 SECTION data
 logo:
