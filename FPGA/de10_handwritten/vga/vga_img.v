@@ -34,9 +34,9 @@ module vga_img(
 	wire [4:0] mapRow = curRow[8:4];
 	wire [5:0] mapCol = curCol[9:4];
 	
-   assign buffer_r = pixmap[mapRow*PW*PIX+mapCol*PIX   +: CH] << (4-CH);
-   assign buffer_g = pixmap[mapRow*PW*PIX+mapCol*PIX+CH +: CH] << (4-CH);
-   assign buffer_b = pixmap[mapRow*PW*PIX+mapCol*PIX+CH*2 +: CH] << (4-CH);
+   assign buffer_r = {pixmap[mapRow*PW*PIX+mapCol*PIX      +: CH],pixmap[mapRow*PW*PIX+mapCol*PIX      +: CH]};
+   assign buffer_g = {pixmap[mapRow*PW*PIX+mapCol*PIX+CH   +: CH],pixmap[mapRow*PW*PIX+mapCol*PIX+CH   +: CH]};
+   assign buffer_b = {pixmap[mapRow*PW*PIX+mapCol*PIX+CH*2 +: CH],pixmap[mapRow*PW*PIX+mapCol*PIX+CH*2 +: CH]};
 
 always @*
 begin

@@ -64,6 +64,7 @@ wire  [127:0]   read_data;
 
 wire            d_key1;
 wire            trigger_in;
+wire            debug;
 reg             in_ready;
 
 reg             write_request;
@@ -89,6 +90,26 @@ reg   [47:0] last_instr = 0;
 reg   [31:0] last_ref = 0;
 
 wire  clk_25;
+
+wire [3:0] imgr;
+wire [3:0] imgg;
+wire [3:0] imgb;	
+wire imghs;
+wire imgvs;
+
+wire [3:0] lcdr;
+wire [3:0] lcdg;
+wire [3:0] lcdb;	
+wire lcdhs;
+wire lcdvs;
+
+assign VGA_B = SW[8]  ? imgb  : lcdb;
+assign VGA_G = SW[8]  ? imgg  : lcdg;
+assign VGA_HS = SW[8] ? imghs : lcdhs;
+assign VGA_R = SW[8]  ? imgr  : lcdr;
+assign VGA_VS = SW[8] ? imgvs : lcdvs;
+
+assign debug = SW[8] ? SW[9] : 1'b0;
 
 function [7:0] hex_digit(input [3:0] val, input dot);
   begin
@@ -341,7 +362,7 @@ begin
 		write_request <= 1;
 		read_request <= 0;
 		next_pc <= pc;
-		if (write_finished && SW[9]) begin
+		if (write_finished && debug) begin
 		  next_state <= 17;
 		end else if (write_finished && in_ready) begin
 		  next_state <= 15;
@@ -380,7 +401,7 @@ begin
 		write_request <= 0;
 		read_request <= 0;
 	   next_pc <= pc;
-		if (SW[9] && !trigger_in)
+		if (debug && !trigger_in)
 			next_state <= 17;
 		else
 			next_state <= 23;
@@ -438,7 +459,7 @@ pll pll(
     .c1(clk_25)
 );
 
-/*vga_lcd vga(
+vga_lcd vga_lcd(
   .clk_25(clk_25),
   .clk_50(MAX10_CLK1_50),
   .inval(SW[7:0]),
@@ -448,25 +469,25 @@ pll pll(
   .reset(reset),
   .instr(last_instr),
   .refs(last_ref),
-  .debug(SW[9]),
-  .VGA_R(VGA_R),
-  .VGA_G(VGA_G),
-  .VGA_B(VGA_B),
-  .VGA_HS(VGA_HS),
-  .VGA_VS(VGA_VS)
-); */
+  .debug(debug),
+  .VGA_R(lcdr),
+  .VGA_G(lcdg),
+  .VGA_B(lcdb),
+  .VGA_HS(lcdhs),
+  .VGA_VS(lcdvs)
+);
 
-vga_img vga(
+vga_img vga_img(
   .clk_25(clk_25),
   .clk_50(MAX10_CLK1_50),
   .addInput(triggerOutput),
   .rgbCode(last_out[11:0]),
   .reset(reset),
-  .VGA_R(VGA_R),
-  .VGA_G(VGA_G),
-  .VGA_B(VGA_B),
-  .VGA_HS(VGA_HS),
-  .VGA_VS(VGA_VS)
+  .VGA_R(imgr),
+  .VGA_G(imgg),
+  .VGA_B(imgb),
+  .VGA_HS(imghs),
+  .VGA_VS(imgvs)
 );
 
 program_rom program_rom(
