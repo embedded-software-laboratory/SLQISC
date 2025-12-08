@@ -4,6 +4,7 @@ module vga_img(
 	input addInput,
 	input [11:0] rgbCode,
 	input reset,
+	input interpolate,
 	
 	output		     [3:0]		VGA_R,
    output           [3:0]		VGA_B,
@@ -26,17 +27,23 @@ module vga_img(
 	localparam CH = 2;
 	localparam PIX = CH*3;
 	
-	reg [PW*PH*PIX-1:0] pixmap;
+	reg [PW*PH*CH-1:0] rmap;
+	reg [PW*PH*CH-1:0] gmap;
+	reg [PW*PH*CH-1:0] bmap;
 	
 	reg [10:0] freeX = 0;
 	reg [10:0] freeXN = 0;
 	
 	wire [4:0] mapRow = curRow[8:4];
 	wire [5:0] mapCol = curCol[9:4];
-	
-   assign buffer_r = {pixmap[mapRow*PW*PIX+mapCol*PIX      +: CH],pixmap[mapRow*PW*PIX+mapCol*PIX      +: CH]};
-   assign buffer_g = {pixmap[mapRow*PW*PIX+mapCol*PIX+CH   +: CH],pixmap[mapRow*PW*PIX+mapCol*PIX+CH   +: CH]};
-   assign buffer_b = {pixmap[mapRow*PW*PIX+mapCol*PIX+CH*2 +: CH],pixmap[mapRow*PW*PIX+mapCol*PIX+CH*2 +: CH]};
+
+	wire [3:0] w_ri;
+	wire [3:0] w_gi;
+	wire [3:0] w_bi;
+
+   assign buffer_r = interpolate ? w_ri : {rmap[mapRow*PW*CH+mapCol*CH +: CH],rmap[mapRow*PW*CH+mapCol*CH +: CH]};
+   assign buffer_g = interpolate ? w_gi : {gmap[mapRow*PW*CH+mapCol*CH +: CH],gmap[mapRow*PW*CH+mapCol*CH +: CH]};
+   assign buffer_b = interpolate ? w_bi : {bmap[mapRow*PW*CH+mapCol*CH +: CH],bmap[mapRow*PW*CH+mapCol*CH +: CH]};
 
 always @*
 begin
@@ -50,12 +57,14 @@ begin
   if(reset) begin
      processed <= 0;
 	  freeXN <= 0;
-	  pixmap <= 0;
+	  rmap <= 0;
+	  gmap <= 0;
+	  bmap <= 0;
   end else begin
 	  if(addInput && !processed) begin
-		 pixmap[freeX*PIX +: CH] <= rgbCode[11 -: CH];
-		 pixmap[freeX*PIX+CH +: CH] <= rgbCode[7 -: CH];
-		 pixmap[freeX*PIX+2*CH +: CH] <= rgbCode[3 -: CH];
+		 rmap[freeX*CH +: CH] <= rgbCode[11 -: CH];
+		 gmap[freeX*CH +: CH] <= rgbCode[7 -: CH];
+		 bmap[freeX*CH +: CH] <= rgbCode[3 -: CH];
 		 freeXN <= freeX + 11'b1 >= PW*PH ? 11'b0 : freeX + 11'b1;
 		 processed <= 1;
 	  end
@@ -77,6 +86,40 @@ vga_controller controller(
   .VGA_B(VGA_B),
   .VGA_HS(VGA_HS),
   .VGA_VS(VGA_VS)
+);
+
+	
+wire [3:0] inRow = curRow[3:0]+4'b1000;
+wire [3:0] inCol = curCol[3:0]+4'b1000;
+
+bi_interpolator lerp_r(
+	.a00(rmap[(mapRow   - (inRow[3:0]>>3) )*PW*CH+(mapCol   - (inCol[3:0]>>3) )*CH +: CH]),
+	.a01(rmap[(mapRow   - (inRow[3:0]>>3) )*PW*CH+(mapCol+1 - (inCol[3:0]>>3) )*CH +: CH]),
+	.a10(rmap[(mapRow+1 - (inRow[3:0]>>3) )*PW*CH+(mapCol   - (inCol[3:0]>>3) )*CH +: CH]),
+	.a11(rmap[(mapRow+1 - (inRow[3:0]>>3) )*PW*CH+(mapCol+1 - (inCol[3:0]>>3) )*CH +: CH]),
+	.alpha(inCol),
+	.beta(inRow),
+	.lerp(w_ri)
+);
+
+bi_interpolator lerp_g(
+	.a00(gmap[(mapRow   - (inRow[3:0]>>3) )*PW*CH+(mapCol   - (inCol[3:0]>>3) )*CH +: CH]),
+	.a01(gmap[(mapRow   - (inRow[3:0]>>3) )*PW*CH+(mapCol+1 - (inCol[3:0]>>3) )*CH +: CH]),
+	.a10(gmap[(mapRow+1 - (inRow[3:0]>>3) )*PW*CH+(mapCol   - (inCol[3:0]>>3) )*CH +: CH]),
+	.a11(gmap[(mapRow+1 - (inRow[3:0]>>3) )*PW*CH+(mapCol+1 - (inCol[3:0]>>3) )*CH +: CH]),
+	.alpha(inCol),
+	.beta(inRow),
+	.lerp(w_gi)
+);
+
+bi_interpolator lerp_b(
+	.a00(bmap[(mapRow   - (inRow[3:0]>>3) )*PW*CH+(mapCol   - (inCol[3:0]>>3) )*CH +: CH]),
+	.a01(bmap[(mapRow   - (inRow[3:0]>>3) )*PW*CH+(mapCol+1 - (inCol[3:0]>>3) )*CH +: CH]),
+	.a10(bmap[(mapRow+1 - (inRow[3:0]>>3) )*PW*CH+(mapCol   - (inCol[3:0]>>3) )*CH +: CH]),
+	.a11(bmap[(mapRow+1 - (inRow[3:0]>>3) )*PW*CH+(mapCol+1 - (inCol[3:0]>>3) )*CH +: CH]),
+	.alpha(inCol),
+	.beta(inRow),
+	.lerp(w_bi)
 );
 
 endmodule

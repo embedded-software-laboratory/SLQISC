@@ -109,7 +109,7 @@ assign VGA_HS = SW[8] ? imghs : lcdhs;
 assign VGA_R = SW[8]  ? imgr  : lcdr;
 assign VGA_VS = SW[8] ? imgvs : lcdvs;
 
-assign debug = SW[8] ? SW[9] : 1'b0;
+assign debug = SW[8] ? 1'b0 : SW[9];
 
 function [7:0] hex_digit(input [3:0] val, input dot);
   begin
@@ -483,6 +483,7 @@ vga_img vga_img(
   .addInput(triggerOutput),
   .rgbCode(last_out[11:0]),
   .reset(reset),
+  .interpolate(SW[9]),
   .VGA_R(imgr),
   .VGA_G(imgg),
   .VGA_B(imgb),
