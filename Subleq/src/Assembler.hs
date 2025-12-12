@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase, Arrows #-}
 
 module Assembler (assemble, debugAssemble, disassemble, outputLogisim, outputMif) where
 
@@ -12,9 +12,12 @@ import Assembly
     charValue,
     implem,
     sectionSize,
+    rawDir
   )
-import Control.Arrow (Arrow (first, (&&&)), (>>>))
-import Control.Monad (guard, when)
+import Codec.Picture (DynamicImage, readImage)
+import Control.Arrow (Arrow (first),returnA)
+import Control.Monad (guard, when, forM)
+import Data.Function ((&))
 import Data.Int (Int16)
 import Data.List (elemIndex, findIndex, sortOn)
 import Data.List.NonEmpty qualified as LNE
@@ -24,6 +27,7 @@ import Data.Set qualified as S
 import Optimizer (debugPostOptimize, postOptimize, preOptimize)
 import System.IO (IOMode (WriteMode), hPrint, hPutStrLn, withFile)
 import Text.Printf (printf)
+import Util.Image (slqimg)
 import Util.List
 
 cConst :: Directive -> Maybe Int
@@ -141,17 +145,17 @@ toInt (DBreak r) = toInt r
 toInts :: [Directive] -> [Int]
 toInts = mapMaybe toInt
 
-resolveMacrosD' :: Directive -> Directive -> ([Directive], Int)
-resolveMacrosD' pc (DMacro m) = implem ((DLabel "_v" +) . DNumber) pc m
-resolveMacrosD' _ d = ([d], 0)
+resolveMacrosD' :: M.Map String [Int] -> Directive -> Directive -> ([Directive], Int)
+resolveMacrosD' imgs pc (DMacro m) = implem imgs ((DLabel "_v" +) . DNumber) pc m
+resolveMacrosD' _ _ d = ([d], 0)
 
-resolveMacrosD :: String -> LDirective -> ([LDirective], Int)
-resolveMacrosD _ (LabelledDirective l d) = first (\case (x : xs) -> LabelledDirective l x : map RawDirective xs; [] -> []) (resolveMacrosD' (DLabel l) d)
-resolveMacrosD free (RawDirective d) = first (\case (x : xs) -> LabelledDirective free x : map RawDirective xs; [] -> []) (resolveMacrosD' (DLabel free) d)
+resolveMacrosD :: M.Map String [Int] -> String -> LDirective -> ([LDirective], Int)
+resolveMacrosD imgs _ (LabelledDirective l d) = first (\case (x : xs) -> LabelledDirective l x : map RawDirective xs; [] -> []) (resolveMacrosD' imgs (DLabel l) d)
+resolveMacrosD imgs free (RawDirective d) = first (\case (x : xs) -> LabelledDirective free x : map RawDirective xs; [] -> []) (resolveMacrosD' imgs (DLabel free) d)
 
-resolveMacros :: Assembly -> Assembly
-resolveMacros a =
-  let resolved s = zipWith (\i -> resolveMacrosD ("_" ++ sName s ++ show i)) [0 :: Int ..] (directives s)
+resolveMacros ::  M.Map String [Int] -> Assembly -> Assembly
+resolveMacros imgs a =
+  let resolved s = zipWith (\i -> resolveMacrosD imgs ("_" ++ sName s ++ show i)) [0 :: Int ..] (directives s)
       newDirs = map (\s -> s {directives = resolved s >>= fst}) a
       vCount = safeMaximum 0 $ a >>= (map snd . resolved)
       preSection = Section {sName = "__vars", location = Nothing, directives = LabelledDirective "_v" 0 : replicate (vCount - 1) (RawDirective 0)}
@@ -160,25 +164,42 @@ resolveMacros a =
 extractTraps :: [Directive] -> [Int]
 extractTraps ds = map fst $ filter (\case (_, DBreak _) -> True; _nonbreak -> False) $ zip [0 ..] ds
 
-assemble :: Assembly -> ([Int], [Int])
-assemble =
-  preOptimize
-    >>> resolveMacros
-    >>> constSection
-    >>> placeSections
-    >>> padSections
-    >>> squash
-    >>> resolveLabels
-    >>> (extractTraps &&& (toInts >>> postOptimize))
+fetchImages :: Assembly -> IO (M.Map String [Int])
+fetchImages asm = do
+  let dirs = map rawDir (asm >>= directives)
+  let imgs = dirs >>= (\case DMacro (MImg uri) -> [uri]; _ -> [])
+  lst <- forM imgs $ \uri -> do
+    load <- readImage uri
+    case load of
+      Left err -> error err
+      Right di -> return (uri,slqimg di)
+  return $ M.fromList lst
+
+assemble :: Assembly -> IO ([Int], [Int])
+assemble a = do
+  imgs <- fetchImages a
+  a & proc asm -> do
+    opt <- preOptimize -< asm
+    rsm <- (resolveMacros imgs) -< opt
+    cns <- constSection -< rsm
+    plc <- placeSections -< cns
+    pad <- padSections -< plc
+    sqh <- squash -< pad
+    rsl <- resolveLabels -< sqh
+    trp <- extractTraps -< rsl
+    int <- toInts -< rsl
+    pop <- postOptimize -< int
+    returnA -< return (trp,pop)
 
 debugAssemble :: String -> Assembly -> IO ([Int], [Int])
 debugAssemble f a = withFile f WriteMode $ \h -> do
+  imgs <- fetchImages a
   hPutStrLn h "Input: "
   hPrint h a
   let preOpt = preOptimize a
   hPutStrLn h "Pre-Optimized: "
   hPrint h preOpt
-  let demacro = resolveMacros preOpt
+  let demacro = resolveMacros imgs preOpt
   hPutStrLn h "Demacro: "
   hPrint h demacro
   let constS = constSection demacro

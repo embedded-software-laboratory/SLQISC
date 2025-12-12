@@ -84,6 +84,14 @@ macro =
             _ <- char '\"'
             return r
         )
+    <|> ( do
+            _ <- string "IMG"
+            cWhitespace
+            _ <- char '\"'
+            r <- MImg <$> some (noneOf "\"\n")
+            _ <- char '\"'
+            return r
+        )
 
 register :: Parser Reg
 register = do

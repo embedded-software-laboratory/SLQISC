@@ -13,7 +13,7 @@ mainAssembly verbose filename input = case parseAssembly filename input of
   Left err -> putStrLn err
   Right asm -> do
     let name = reverse $ takeWhile isAlphaNum $ reverse $ takeWhile (/= '.') filename
-    (_,cmp) <- if verbose then debugAssemble (name ++ ".out") asm else return $ assemble asm
+    (_,cmp) <- if verbose then debugAssemble (name ++ ".out") asm else assemble asm
     when verbose $ print cmp
     outputLogisim (name ++ ".hex") cmp
     outputMif (name ++ ".mif") cmp
@@ -25,7 +25,7 @@ mainCMM verbose filename input = case parseCMM filename input of
     let name = reverse $ takeWhile isAlphaNum $ reverse $ takeWhile (/= '.') filename
     let asm = compile prog
     when verbose $ print asm
-    (_,cmp) <- if verbose then debugAssemble (name ++ ".out") asm else return $ assemble asm
+    (_,cmp) <- if verbose then debugAssemble (name ++ ".out") asm else assemble asm
     when verbose $ print cmp
     outputLogisim (name ++ ".hex") cmp
     outputMif (name ++ ".mif") cmp

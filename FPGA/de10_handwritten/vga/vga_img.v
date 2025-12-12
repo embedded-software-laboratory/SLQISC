@@ -44,6 +44,10 @@ module vga_img(
    assign buffer_g = interpolate ? w_gi : {gmap[mapRow*PW*CH+mapCol*CH +: CH],gmap[mapRow*PW*CH+mapCol*CH +: CH]};
    assign buffer_b = interpolate ? w_bi : {bmap[mapRow*PW*CH+mapCol*CH +: CH],bmap[mapRow*PW*CH+mapCol*CH +: CH]};
 
+	wire [1:0] dR;
+	wire [1:0] dG;
+	wire [1:0] dB;
+	
 always @*
 begin
   freeX <= freeXN;
@@ -61,9 +65,9 @@ begin
 	  bmap <= 0;
   end else begin
 	  if(addInput && !processed) begin
-		 rmap[freeX*CH +: CH] <= rgbCode[11 -: CH];
-		 gmap[freeX*CH +: CH] <= rgbCode[7 -: CH];
-		 bmap[freeX*CH +: CH] <= rgbCode[3 -: CH];
+		 rmap[freeX*CH +: CH] <= dR;
+		 gmap[freeX*CH +: CH] <= dG;
+		 bmap[freeX*CH +: CH] <= dB;
 		 freeXN <= freeX + 11'b1 >= PW*PH ? 11'b0 : freeX + 11'b1;
 		 processed <= 1;
 	  end
@@ -119,6 +123,27 @@ bi_interpolator lerp_b(
 	.alpha(inCol),
 	.beta(inRow),
 	.lerp(w_bi)
+);
+
+dither dither_r(
+	.value(rgbCode[11:8]),
+	.x(~freeX[0]),
+	.y(freeX[3]),
+	.dithered(dR)
+);
+
+dither dither_g(
+	.value(rgbCode[7:4]),
+	.x(freeX[0]),
+	.y(freeX[3]),
+	.dithered(dG)
+);
+
+dither dither_b(
+	.value(rgbCode[3:0]),
+	.x(freeX[0]),
+	.y(~freeX[3]),
+	.dithered(dB)
 );
 
 endmodule

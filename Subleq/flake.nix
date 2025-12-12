@@ -15,7 +15,7 @@
         default = pkgs.mkShell {
           name = "slqisc-subleq";
           packages = with pkgs; [
-            cabal-install ghc stack haskell-language-server
+            cabal-install ghc stack haskell-language-server zlib
           ];
         };
       });

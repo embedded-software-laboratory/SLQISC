@@ -14,7 +14,7 @@ mainAssembly verbose linePrint filename input = case parseAssembly filename inpu
   Left err -> putStrLn err
   Right asm -> do
     let name = reverse $ takeWhile isAlphaNum $ reverse $ takeWhile (/= '.') filename
-    (traps,cmp) <- if verbose then debugAssemble (name ++ ".out") asm else return $ assemble asm
+    (traps,cmp) <- if verbose then debugAssemble (name ++ ".out") asm else assemble asm
     when verbose $ print cmp
     runSimulator verbose linePrint traps cmp
 
@@ -25,7 +25,7 @@ mainCMM verbose linePrint filename input = case parseCMM filename input of
     let name = reverse $ takeWhile isAlphaNum $ reverse $ takeWhile (/= '.') filename
     let asm = compile prog
     when verbose $ print asm
-    (traps,cmp) <- if verbose then debugAssemble (name ++ ".out") asm else return $ assemble asm
+    (traps,cmp) <- if verbose then debugAssemble (name ++ ".out") asm else assemble asm
     when verbose $ print cmp
     runSimulator verbose linePrint traps cmp
 
