@@ -25,7 +25,6 @@ module vga_img(
 	localparam PW = 40;
 	localparam PH = 30;
 	localparam CH = 2;
-	localparam PIX = CH*3;
 	
 	reg [PW*PH*CH-1:0] rmap;
 	reg [PW*PH*CH-1:0] gmap;
