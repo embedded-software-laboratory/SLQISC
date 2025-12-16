@@ -100,6 +100,10 @@ register = do
     <|> (string "SP" >> return RSP)
     <|> (RGPR . read <$> some digitChar)
 
+
+labelName :: Parser [Char]
+labelName = many (alphaNumChar <|> char '_')
+
 directive :: Parser Directive
 directive = do
   cWhitespace
@@ -112,7 +116,7 @@ directive = do
     '$' -> DReg <$> register
     '(' -> calcDirective <* char ')'
     nn | isDigit nn || nn == '-' -> DNumber . read . (nn :) <$> many digitChar
-    nn | isLower nn -> DLabel . (nn :) <$> many alphaNumChar
+    nn | isLower nn -> DLabel . (nn :) <$> labelName
     _ -> fail "no directive"
 
 mDirective :: Parser Directive
@@ -122,7 +126,7 @@ mDirective = do
 
 stringLDirective :: Parser LDirective
 stringLDirective = do
-  l <- (:) <$> lowerChar <*> many alphaNumChar
+  l <- (:) <$> lowerChar <*> labelName
   (char ':' *> (LabelledDirective l <$> mDirective)) <|> return (RawDirective (DLabel l))
 
 lDirective :: Parser LDirective
