@@ -3,7 +3,7 @@ Subleq Assembler, Computer Circuit and other tools for teaching
 
 ## Assembler
 
-Written in Haskell as a [Stack project](https://docs.haskellstack.org/en/stable/)
+Written in Haskell as a [Cabal project](https://www.haskell.org/cabal/)
 
 ## Circuit
 
