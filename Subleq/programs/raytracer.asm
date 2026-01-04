@@ -20,6 +20,7 @@ colDone:
 
 SECTION funcs
 move:
+  JLEQ mMode customMove
   ADD lI #3
   MOD lI #189
   MOV $0 lookrng
@@ -29,6 +30,7 @@ move:
   LDI lY $0
   INC $0
   LDI lZ $0
+calcL:
   MOV $2 lX
   CALL square
   MOV $0 $2
@@ -41,6 +43,22 @@ move:
   CALL isqrt
   MOV lL $0
   RET
+customMove:
+  IN $0
+  JLEQ $0 automate
+  MOV $1 $0
+  MOD $1 #4
+  MOV lZ $1
+  DIV $0 #4
+  MOV $1 $0
+  MOD $1 #4
+  MOV lY $1
+  DIV $0 #4
+  MOV lX $0
+  JMP calcL
+automate:
+  MOV mMode #1
+  JMP move
 
 isqrt:
   MOV $1 lookisqrt
@@ -193,6 +211,7 @@ lZ: 1
 lL: 1
 sX: 0
 sY: 0
+mMode: 0
 
 SECTION colors
 black: 0
