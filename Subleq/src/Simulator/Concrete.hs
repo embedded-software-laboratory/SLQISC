@@ -5,6 +5,8 @@ import Control.Monad.IO.Class (MonadIO (..))
 import Data.Char
 import Data.Int (Int16)
 import Data.Map qualified as M
+import System.IO
+
 import Assembler (disassemble)
 
 data ProgramState = ProgramState
@@ -93,7 +95,7 @@ simLoop printLinear ps = do
   ps' <-
     step
       readLn
-      (if printLinear then (\v -> putStrLn $ charize v : " (" ++ show v ++ ")") else (\v -> putStr [charize v]))
+      (if printLinear then (\v -> putStrLn $ charize v : " (" ++ show v ++ ")") else (\v -> putStr [charize v] >> hFlush stdout))
       ps
   simLoop printLinear ps'
 
