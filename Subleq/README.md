@@ -57,7 +57,7 @@ Labels ersetzten in der Assemblerprogrammierung Adressen durch Namen, die währe
 
 ### Sektionen
 
-Assemblycode ist in Sektionen unterteilt, „SECTION name“ leitet eine Sektion ein, die vom Assembler platziert wird, „SECTION name[@address]“ platziert die Sektion an der angegebenen Adresse. Da die Ausführung immer an Adresse 0 startet, sollte es eine Sektion geben, die explizit an Adresse 0 steht, um den Programmstart korrekt zu setzen (bspw. "SECTION main[@0]").
+Assembly code ist in Sektionen unterteilt, „SECTION name“ leitet eine Sektion ein, die vom Assembler platziert wird, „SECTION name[@address]“ platziert die Sektion an der angegebenen Adresse. Da die Ausführung immer an Adresse 0 startet, sollte es eine Sektion geben, die explizit an Adresse 0 steht, um den Programmstart korrekt zu setzen (bspw. "SECTION main[@0]").
 
 Beispielassemblyprogramme finden Sie im Ordner [programs](programs/).
 
@@ -67,7 +67,6 @@ Beispielassemblyprogramme finden Sie im Ordner [programs](programs/).
 Can be run with `cabal run simulator -- [-v] [-p] <filename.asm|filename.cmm>`. The simulator takes assembled programs and executes them. Optional `-v` enables interactive debug mode with breakpoints, and `-p` enables line-wise output format showing each output value on a new line with its numeric representation.
 
 The simulator catches instructions like `OUT`, `PRNT`, `DOUT` and `STR` and prints them to console.
-Using the simulator without the `-p` flag, there might be terminal-buffering issues.
 
 ### Breakpoints
 
