@@ -1,6 +1,6 @@
 # Circuit
 
-A collection of [logisim-evolution](https://github.com/logisim-evolution/logisim-evolution) project files that simulate various varieties of a Subleq-OISC.
+A collection of [logisim-evolution](https://github.com/logisim-evolution/logisim-evolution) project files that simulate various variants of a Subleq-OISC. Additionally, this folder contains a few test programs as .hex files.
 
 ## Important Circuits
 The most importent circuits provided in this directory are:

@@ -1,6 +1,6 @@
-# SubleqCompiler
+# Subleq Compiler
 
-This directory contains an assembler and a simulator designed to compile and test assembly code for OISC using the Subleq instruction. Additionally, it includes a collection of example programs for the assembler.
+This directory contains an assembler and a simulator designed to compile and test assembly code for OISC using the Subleq instruction. Additionally, it includes a collection of example programs for the assembler. The assembler and simulator are written in haskell as a [Cabal project](https://www.haskell.org/cabal/).
 
 ## Assembler
 
