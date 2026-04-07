@@ -1,8 +1,14 @@
-# SubleqCompiler
+# Subleq Compiler
 
-Basic Cabal project. Can be built with `cabal build` and ran with `cabal run assembler -- <filename.asm>`. An optional `-v` parameter allows for generation of debug logs, a CFA and intermediate compilation steps.
+This directory contains an assembler and a simulator designed to compile and test assembly code for OISC using the Subleq instruction. Additionally, it includes a collection of example programs for the assembler. The assembler and simulator are written in haskell as a [Cabal project](https://www.haskell.org/cabal/).
 
-## Befehle
+## Assembler
+
+Basic Cabal project. Can be built with `cabal build` and ran with `cabal run assembler -- <filename.asm|filename.cmm>`. An optional `-v` parameter allows for generation of debug logs, a CFA and intermediate compilation steps.
+
+The assembler takes either `.cmm` or `.asm` source and generates a `.hex` file, which can be used as input for the Logisim Evolution circuit simulations (see [../Circuit](../Circuit/)) and a `.mif` file, which is used to initialize the ROM/RAM of the FPGA in Verilog.
+
+### Befehle
 
 - „SLQ a b c“ ist das einfache SUBLEQ a b c, nur in weniger zu tippen
 - „NOP“ tut nichts
@@ -31,10 +37,12 @@ Basic Cabal project. Can be built with `cabal build` and ran with `cabal run ass
 - „STR a“ speichert den String a charweise als Wert an mehreren hintereinanderliegenden Adressen
 - „CALL a“ springt an Adresse a und speichert die Rücksprungadresse auf dem Stack (effektiv: PUSH <nextLoc>, JMP a)
 - „RET“ liest den obersten Wert vom Stack und springt an diese Adresse (effektiv, POP x, JMP x)
+- „TRP“ hält das Programm an bzw. loopt unendlich die TRP Instruktion
+- „BRK“ setzt einen Breakpoint, der vom Simulator (im debug modus) erkannt wird
 
 Der Assembler ist Case-Sensitive – Befehle sind immer in CAPS und Labels sind immer klein.
 
-## Argumente
+### Argument
 
 Argumente für die Befehle sind Zahlen (für Adressen) oder Labels. Es gibt einige Spezialwerte:
 
@@ -45,8 +53,21 @@ Argumente für die Befehle sind Zahlen (für Adressen) oder Labels. Es gibt eini
 - $O ist die Speicherstelle an die Outputs geschrieben werden können
 - $SP ist der Stackpointer
 
-## Sektionen
+Labels ersetzten in der Assemblerprogrammierung Adressen durch Namen, die während dem Compilen zu richtigen Adressen aufgelöst werden. Um ein Label zu deklarieren, benutze `labelname:`. Diese können analog auch als Variablen benutzt werden. Weitere Informationen zur Anwendung sind in den Beispielprogrammen in [programs](programs/) zu finden.
 
-Assemblycode ist in Sektionen unterteilt, „SECTION name“ leitet eine Sektion ein, die vom Assembler platziert wird, „SECTION name[@address]“ platziert die Sektion an der angegebenen Adresse. Da die Ausführung immer an Adresse 0 startet, sollte es eine Sektion geben, die explizit an Adresse 0 steht, um den Programmstart korrekt zu setzen.
+### Sektionen
 
-Beispielassemblyprogramme finden Sie im Ordner Assembler/programs.
+Assembly code ist in Sektionen unterteilt, „SECTION name“ leitet eine Sektion ein, die vom Assembler platziert wird, „SECTION name[@address]“ platziert die Sektion an der angegebenen Adresse. Da die Ausführung immer an Adresse 0 startet, sollte es eine Sektion geben, die explizit an Adresse 0 steht, um den Programmstart korrekt zu setzen (bspw. "SECTION main[@0]").
+
+Beispielassemblyprogramme finden Sie im Ordner [programs](programs/).
+
+
+## Simulator
+
+Can be run with `cabal run simulator -- [-v] [-p] <filename.asm|filename.cmm>`. The simulator takes assembled programs and executes them. Optional `-v` enables interactive debug mode with breakpoints, and `-p` enables line-wise output format showing each output value on a new line with its numeric representation.
+
+The simulator catches instructions like `OUT`, `PRNT`, `DOUT` and `STR` and prints them to console.
+
+### Breakpoints
+
+Breakpoints can be set using the BRK instruction. Upon encountering a breakpoint, the simulator pauses execution, prints "BREAK" to the terminal, and allows you to debug the code (commands: `state`, `continue`, `exit`).
